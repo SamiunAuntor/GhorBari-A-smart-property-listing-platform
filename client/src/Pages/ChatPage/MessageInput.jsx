@@ -78,34 +78,33 @@ export default function MessageInput({
     };
 
     return (
-        <form onSubmit={handleSendMessage} className="p-4 border-t border-gray-200 bg-white">
+        <form onSubmit={handleSendMessage} className="p-4 border-t border-gray-100 bg-white">
             <div className="flex gap-3 items-end">
                 <textarea
                     ref={textareaRef}
                     value={message}
                     onChange={handleTyping}
                     onKeyDown={handleKeyDown}
-                    placeholder="Type a message... (Shift+Enter for new line)"
+                    placeholder="Type a message..."
                     disabled={disabled}
                     rows="1"
-                    className="flex-1 resize-none border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed max-h-32"
+                    className="flex-1 resize-none border border-gray-200 rounded-2xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:bg-gray-100 disabled:cursor-not-allowed max-h-32"
                 />
 
                 <button
                     type="submit"
                     disabled={!message.trim() || disabled}
-                    className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg px-6 py-2 font-semibold transition-colors flex-shrink-0"
+                    className="bg-orange-500 hover:bg-orange-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-2xl px-5 py-2 text-sm font-semibold transition-colors flex-shrink-0"
                 >
                     Send
                 </button>
             </div>
 
-            {/* Character count, tips, and offline note */}
-            <div className="mt-2 flex flex-wrap justify-between items-center gap-1 text-xs text-gray-500">
-                <span>{message.length} characters</span>
-                <span>Shift+Enter to add new line</span>
+            {/* Helper text and offline note */}
+            <div className="mt-2 flex flex-wrap justify-between items-center gap-1 text-[11px] text-gray-500">
+                <span>Press Enter to send • Shift+Enter for new line</span>
                 {!isConnected && (
-                    <span className="w-full text-amber-600">Offline — messages still send and will be seen when they open the chat.</span>
+                    <span className="w-full text-amber-600">Offline — messages will be delivered when the connection is restored.</span>
                 )}
             </div>
         </form>

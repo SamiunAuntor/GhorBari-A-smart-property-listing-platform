@@ -18,14 +18,14 @@ export default function ChatHeader({
 
     if (!conversation) {
         return (
-            <div className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4">
-                <p className="text-gray-500">Select a conversation</p>
+            <div className="h-16 bg-white border-b border-gray-100 flex items-center justify-between px-4">
+                <p className="text-gray-500 text-sm">Select a conversation</p>
             </div>
         );
     }
 
     return (
-        <div className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4">
+        <div className="h-16 bg-white border-b border-gray-100 flex items-center justify-between px-4">
             {/* Left side - User info */}
             <div className="flex items-center gap-3 flex-1 min-w-0">
                 {/* Mobile back button */}
@@ -40,7 +40,7 @@ export default function ChatHeader({
 
                 {/* Avatar */}
                 <div className="relative flex-shrink-0">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-semibold text-sm">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-yellow-500 flex items-center justify-center text-white font-semibold text-sm">
                         {getInitials(conversation.otherUserName)}
                     </div>
                     {isOnline && (

@@ -26,13 +26,10 @@ export default function ConversationList({
     if (conversations.length === 0) {
         return (
             <div className="h-full flex flex-col items-center justify-center bg-gray-50 p-6">
-                <div className="text-center max-w-sm">
-                    <p className="text-gray-700 font-semibold text-lg mb-2">No chats yet</p>
-                    <p className="text-gray-500 text-sm mb-4">
-                        Chat is only available after you <strong>accept an offer</strong> or <strong>accept a counter offer</strong> in property bidding.
-                    </p>
-                    <p className="text-gray-500 text-sm">
-                        Go to <strong>My Properties</strong> (as owner) or <strong>My Requested Properties</strong> (as buyer), accept a deal, then come back here to see your chat.
+                <div className="text-center max-w-xs">
+                    <p className="text-gray-800 font-semibold text-sm mb-1">No active chats</p>
+                    <p className="text-gray-500 text-xs">
+                        Chats appear here when you have a deal in progress with an owner or seeker.
                     </p>
                 </div>
             </div>
@@ -40,15 +37,15 @@ export default function ConversationList({
     }
 
     return (
-        <div className="h-full flex flex-col bg-white">
+        <div className="h-full flex flex-col bg-gray-50">
             {/* Search Header */}
-            <div className="p-4 border-b border-gray-200">
+            <div className="p-3 border-b border-gray-100 bg-gray-50">
                 <input
                     type="text"
                     placeholder="Search conversations..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full px-4 py-2 rounded-lg bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    className="w-full px-3 py-2 rounded-full bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500 text-xs"
                 />
             </div>
 
@@ -58,9 +55,9 @@ export default function ConversationList({
                     <div
                         key={conversation._id}
                         onClick={() => handleSelectConversation(conversation)}
-                        className={`p-4 border-b border-gray-100 cursor-pointer transition-all hover:bg-gray-50 ${
+                        className={`px-3 py-3 border-b border-gray-100 cursor-pointer transition-all hover:bg-white ${
                             selectedConversationId === conversation._id
-                                ? 'bg-blue-50 border-l-4 border-l-blue-500'
+                                ? 'bg-white border-l-4 border-l-orange-500'
                                 : ''
                         }`}
                     >
@@ -68,7 +65,7 @@ export default function ConversationList({
                             <div className="flex items-center gap-3 flex-1 min-w-0">
                                 {/* Avatar */}
                                 <div className="relative flex-shrink-0">
-                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-semibold text-sm">
+                                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-orange-400 to-yellow-500 flex items-center justify-center text-white font-semibold text-xs">
                                         {getInitials(conversation.otherUserName)}
                                     </div>
                                     {onlineUsers?.includes(conversation.otherUserEmail) && (

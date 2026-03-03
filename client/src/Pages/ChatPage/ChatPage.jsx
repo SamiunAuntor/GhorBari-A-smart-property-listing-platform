@@ -106,7 +106,7 @@ function ChatWindowContent() {
     };
 
     return (
-        <div className="h-screen flex flex-col lg:flex-row bg-gray-50">
+        <div className="w-11/12 mx-auto my-6 h-[80vh] flex flex-col lg:flex-row bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
             {/* Connection Status */}
             {!isConnected && (
                 <div className="bg-yellow-50 border-b border-yellow-200 px-4 py-2 text-sm text-yellow-800">
@@ -115,13 +115,13 @@ function ChatWindowContent() {
             )}
 
             {/* Conversations Sidebar */}
-            <div className={`w-full lg:w-80 lg:border-r border-gray-200 bg-white flex flex-col ${
+            <div className={`w-full lg:w-80 lg:border-r border-gray-100 bg-gray-50 flex flex-col ${
                 showConversationList ? '' : 'hidden lg:flex'
             }`}>
-                <div className="p-4 border-b border-gray-200">
-                    <h1 className="text-2xl font-bold text-gray-900">Messages</h1>
+                <div className="p-4 border-b border-gray-100 bg-white">
+                    <h1 className="text-lg font-bold text-gray-900">Messages</h1>
                     <p className="text-xs text-gray-500 mt-1">
-                        {isConnected ? '✓ Connected' : '⚠ Offline'} · Chats appear after you accept an offer or counter offer
+                        {isConnected ? '✓ Connected' : '⚠ Offline'} · Chats appear after a deal is in progress
                     </p>
                 </div>
                 <ConversationList
