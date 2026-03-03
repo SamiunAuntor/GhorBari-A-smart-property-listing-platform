@@ -1,10 +1,11 @@
 {
   "name": "backend",
   "version": "1.0.0",
+  "type": "module",
   "main": "src/server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js",
+    "dev": "node server.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier . --check",
