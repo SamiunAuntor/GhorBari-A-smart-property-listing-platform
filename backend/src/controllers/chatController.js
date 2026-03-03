@@ -208,12 +208,15 @@ export const getConversationMessages = async (req, res) => {
 export const sendMessage = async (req, res) => {
     try {
         const db = req.db;
-        const { conversationId, content } = req.body;
+        const { conversationId, content, attachments = [] } = req.body;
         const userEmail = req.user.email;
         const user = await db.collection("users").findOne({ email: userEmail });
 
-        if (!content || content.trim() === "") {
-            return res.status(400).json({ message: "Message content is required" });
+        const hasText = content && typeof content === "string" && content.trim() !== "";
+        const hasAttachments = Array.isArray(attachments) && attachments.length > 0;
+
+        if (!hasText && !hasAttachments) {
+            return res.status(400).json({ message: "Message content or attachment is required" });
         }
 
         // Verify user is part of this conversation
@@ -236,11 +239,15 @@ export const sendMessage = async (req, res) => {
             senderEmail: userEmail,
             senderName: user?.name || "Unknown",
             senderImage: user?.profileImage || null,
-            content: content.trim()
+            content: hasText ? content.trim() : "",
+            attachments: hasAttachments ? attachments : []
         });
 
-        // Update conversation's last message
-        await ConversationModel.updateLastMessage(db, conversationId, content, userEmail);
+        // Update conversation's last message (prefer text; if only attachment, show a short label)
+        const lastMessagePreview = hasText
+            ? content
+            : "[Attachment]";
+        await ConversationModel.updateLastMessage(db, conversationId, lastMessagePreview, userEmail);
 
         const message = await db.collection("messages").findOne({ _id: messageId });
 
@@ -255,12 +262,6 @@ export const sendMessage = async (req, res) => {
                 message
             });
         }
-
-        // Also emit to sender
-        io.to(recipientSocketId || "").emit("message:new", {
-            conversationId,
-            message
-        });
 
         return res.status(201).json({
             message: "Message sent",

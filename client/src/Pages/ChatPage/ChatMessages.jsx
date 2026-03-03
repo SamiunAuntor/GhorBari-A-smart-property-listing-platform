@@ -80,7 +80,28 @@ export default function ChatMessages({
                                             : 'bg-white text-gray-900 rounded-bl-none rounded-tl-lg rounded-tr-lg rounded-br-lg'
                                     }`}
                                 >
-                                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                                    {Array.isArray(message.attachments) && message.attachments.length > 0 && (
+                                        <div className="mb-1 space-y-1">
+                                            {message.attachments.map((url) => (
+                                                <a
+                                                    key={url}
+                                                    href={url}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="block"
+                                                >
+                                                    <img
+                                                        src={url}
+                                                        alt="Attachment"
+                                                        className="max-w-xs sm:max-w-sm rounded-md border border-gray-200"
+                                                    />
+                                                </a>
+                                            ))}
+                                        </div>
+                                    )}
+                                    {message.content && (
+                                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                                    )}
                                     <div className={`flex items-center gap-1 mt-0.5 ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
                                         <span className="text-[10px] text-gray-500">
                                             {formatTime(message.createdAt)}
