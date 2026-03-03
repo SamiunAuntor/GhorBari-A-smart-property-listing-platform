@@ -1,5 +1,6 @@
 import { getDatabase } from "../config/db.js";
 import { ObjectId } from "mongodb";
+import { ConversationModel } from "../models/Chat.js";
 
 // Create a new application/proposal
 export const createApplication = async (req, res) => {
@@ -365,6 +366,14 @@ export const updateApplicationStatus = async (req, res) => {
                         updatedAt: new Date()
                     }
                 }
+            );
+
+            // Ensure a chat conversation exists between owner and seeker for this property
+            await ConversationModel.findOrCreate(
+                db,
+                application.owner.email,
+                application.seeker.email,
+                application.propertyId
             );
 
             // NOTE: We do NOT auto-reject other applications here because deal-in-progress is not final.
@@ -899,6 +908,14 @@ export const acceptCounterOffer = async (req, res) => {
                     updatedAt: new Date()
                 }
             }
+        );
+
+        // Ensure a chat conversation exists between owner and seeker for this property
+        await ConversationModel.findOrCreate(
+            db,
+            application.owner.email,
+            application.seeker.email,
+            application.propertyId
         );
 
         // NOTE: We do NOT auto-reject other applications here because deal-in-progress is not final.
