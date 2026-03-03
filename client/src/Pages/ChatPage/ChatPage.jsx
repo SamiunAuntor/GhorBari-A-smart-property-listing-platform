@@ -77,9 +77,9 @@ function ChatWindowContent() {
         setShowConversationList(false); // Hide list on mobile when selecting
     };
 
-    const handleSendMessage = async (content) => {
+    const handleSendMessage = async (content, attachments = []) => {
         try {
-            await sendMessage(selectedConversation._id, content);
+            await sendMessage(selectedConversation._id, content, attachments);
             // Refresh conversation list to update last message
             await fetchConversations();
         } catch (error) {
@@ -106,7 +106,7 @@ function ChatWindowContent() {
     };
 
     return (
-        <div className="w-11/12 mx-auto my-6 h-[80vh] flex flex-col lg:flex-row bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
+        <div className="w-11/12 mx-auto my-6 h-[85vh] flex flex-col lg:flex-row bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
             {/* Connection Status */}
             {!isConnected && (
                 <div className="bg-yellow-50 border-b border-yellow-200 px-4 py-2 text-sm text-yellow-800">

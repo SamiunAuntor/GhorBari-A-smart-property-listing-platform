@@ -99,16 +99,20 @@ export const useChat = () => {
 
   // Send message via HTTP
   const sendMessage = useCallback(
-    async (conversationId, content) => {
+    async (conversationId, content, attachments = []) => {
       try {
-        if (!content.trim()) {
+        const hasText = content && content.trim();
+        const hasAttachments = Array.isArray(attachments) && attachments.length > 0;
+
+        if (!hasText && !hasAttachments) {
           setError("Message cannot be empty");
           return null;
         }
 
         const response = await axiosSecure.post("/send-message", {
           conversationId,
-          content: content.trim(),
+          content: hasText ? content.trim() : "",
+          attachments,
         });
 
         const newMessage = response.data.data;
