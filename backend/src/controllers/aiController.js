@@ -4,7 +4,7 @@ const HUGGINGFACE_API_KEY = process.env.HUGGINGFACE_API_KEY;
 
 // Hugging Face model for real estate AI
 const HUGGINGFACE_MODEL = "mistralai/Mistral-7B-Instruct-v0.1";
-const HUGGINGFACE_API_URL = `https://api-inference.huggingface.co/models/${HUGGINGFACE_MODEL}`;
+const HUGGINGFACE_API_URL = `https://router.huggingface.co/v1/chat/completions`;
 
 export const sendMessageToAI = async (req, res) => {
     try {
@@ -33,13 +33,20 @@ Be friendly, professional, and helpful. Keep responses concise and informative. 
             const response = await axios.post(
                 HUGGINGFACE_API_URL,
                 {
-                    inputs: `${systemPrompt}\n\nUser: ${message}\n\nAssistant:`,
-                    parameters: {
-                        max_new_tokens: 512,
-                        temperature: 0.7,
-                        top_p: 0.95,
-                        top_k: 50,
-                    }
+                    model: HUGGINGFACE_MODEL,
+                    messages: [
+                        {
+                            role: "system",
+                            content: systemPrompt
+                        },
+                        {
+                            role: "user",
+                            content: message
+                        }
+                    ],
+                    temperature: 0.7,
+                    max_tokens: 512,
+                    top_p: 0.95,
                 },
                 {
                     timeout: 30000,
@@ -50,18 +57,15 @@ Be friendly, professional, and helpful. Keep responses concise and informative. 
                 }
             );
 
-            // Hugging Face returns an array of objects
-            if (response.status === 200 && Array.isArray(response.data) && response.data.length > 0) {
-                const aiResponse = response.data[0]?.generated_text;
+            // Hugging Face returns a structured response
+            if (response.status === 200 && response.data?.choices?.[0]?.message?.content) {
+                const aiResponse = response.data.choices[0].message.content;
                 
                 if (aiResponse) {
-                    // Extract only the assistant's response part
-                    const assistantResponse = aiResponse.split("Assistant:")[-1] || aiResponse;
-                    
                     console.log(`✅ Successfully received response from Hugging Face for user: ${userEmail}`);
                     return res.status(200).json({
                         success: true,
-                        response: assistantResponse.trim(),
+                        response: aiResponse.trim(),
                         model: HUGGINGFACE_MODEL
                     });
                 }
