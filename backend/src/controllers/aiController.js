@@ -1,11 +1,10 @@
 import axios from "axios";
 
-const HUGGINGFACE_API_KEY = process.env.HUGGINGFACE_API_KEY;
+const TOGETHER_API_KEY = process.env.TOGETHER_API_KEY;
 
-// Hugging Face model for real estate AI
-// Using meta-llama/Llama-2-7b-chat-hf (works on free tier)
-const HUGGINGFACE_MODEL = "meta-llama/Llama-2-7b-chat-hf";
-const HUGGINGFACE_API_URL = `https://router.huggingface.co/v1/chat/completions`;
+// Together AI model (free tier supported)
+const TOGETHER_MODEL = "meta-llama/Llama-2-7b-chat-hf";
+const TOGETHER_API_URL = "https://api.together.xyz/v1/chat/completions";
 
 export const sendMessageToAI = async (req, res) => {
     try {
@@ -29,25 +28,20 @@ export const sendMessageToAI = async (req, res) => {
             
             const systemPrompt = `You are Ghor AI, a helpful real estate assistant for a property rental and sales platform called "GHOR BARI" (which means "home" in Bengali). You help users find properties, answer questions about real estate, provide advice on renting or buying properties in Bangladesh, and assist with any property-related queries.
 
-Be friendly, professional, and helpful. Keep responses concise and informative. Format your response in a clear, readable way.`;
+Be friendly, professional, and helpful. Keep responses concise and informative.`;
+
+            const prompt = `${systemPrompt}\n\nUser: ${message}\nAssistant:`;
 
             const response = await axios.post(
                 HUGGINGFACE_API_URL,
                 {
-                    model: HUGGINGFACE_MODEL,
-                    messages: [
-                        {
-                            role: "system",
-                            content: systemPrompt
-                        },
-                        {
-                            role: "user",
-                            content: message
-                        }
-                    ],
-                    temperature: 0.7,
-                    max_tokens: 512,
-                    top_p: 0.95,
+                    inputs: prompt,
+                    parameters: {
+                        max_new_tokens: 256,
+                        temperature: 0.7,
+                        top_p: 0.95,
+                        do_sample: true,
+                    }
                 },
                 {
                     timeout: 30000,
@@ -58,11 +52,17 @@ Be friendly, professional, and helpful. Keep responses concise and informative. 
                 }
             );
 
-            // Hugging Face returns a structured response
-            if (response.status === 200 && response.data?.choices?.[0]?.message?.content) {
-                const aiResponse = response.data.choices[0].message.content;
+            // Hugging Face text-generation API returns an array with generated_text
+            if (response.status === 200 && Array.isArray(response.data) && response.data.length > 0) {
+                let aiResponse = response.data[0]?.generated_text;
                 
                 if (aiResponse) {
+                    // Extract only the assistant's response (after "Assistant:")
+                    const assistantIndex = aiResponse.lastIndexOf("Assistant:");
+                    if (assistantIndex !== -1) {
+                        aiResponse = aiResponse.substring(assistantIndex + 10).trim();
+                    }
+                    
                     console.log(`✅ Successfully received response from Hugging Face for user: ${userEmail}`);
                     return res.status(200).json({
                         success: true,
