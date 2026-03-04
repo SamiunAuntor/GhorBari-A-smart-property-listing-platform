@@ -8,6 +8,7 @@ import useWishlist from '../../Hooks/useWishlist';
 import PropertyDetailsMap from './PropertyDetailsMap';
 import NearbyPlaces from './NearbyPlaces';
 import ApplicationModal from './ApplicationModal';
+import WishlistNoteModal from '../../Components/WishlistNoteModal';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Pagination, Autoplay } from 'swiper/modules';
 import {
@@ -33,6 +34,7 @@ const PropertyDetails = ({ isAdminPreview = false }) => {
     const [geoMaps, setGeoMaps] = useState({ divisionMap: new Map(), districtMap: new Map(), upazilaMap: new Map() });
     const [selectedPlace, setSelectedPlace] = useState(null);
     const [isApplicationModalOpen, setIsApplicationModalOpen] = useState(false);
+    const [isWishlistModalOpen, setIsWishlistModalOpen] = useState(false);
 
     // 1. Fetch Property Data
     const { data: property, isLoading: propLoading } = useQuery({
@@ -403,11 +405,10 @@ out center;
                                     if (wishlist.isInWishlist(property._id)) {
                                         await wishlist.toggle(property._id);
                                     } else {
-                                        const note = prompt('Add a note for this property (optional)');
-                                        await wishlist.toggle(property._id, note || '');
+                                        setIsWishlistModalOpen(true);
                                     }
                                 }}
-                                className="p-2 bg-white rounded-md shadow hover:bg-gray-100 transition text-gray-600"
+                                className={`p-2 bg-white rounded-md shadow hover:bg-gray-100 transition ${wishlist.isInWishlist(property?._id) ? 'text-red-500' : 'text-gray-600 hover:text-red-500'}`}
                                 title={wishlist.isInWishlist(property?._id) ? 'Remove from wishlist' : 'Add to wishlist'}
                             >
                                 <Heart size={24} fill={wishlist.isInWishlist(property?._id) ? 'currentColor' : 'none'} />
@@ -593,6 +594,16 @@ out center;
                 isOpen={isApplicationModalOpen}
                 onClose={() => setIsApplicationModalOpen(false)}
                 property={property}
+            />
+
+            <WishlistNoteModal
+                isOpen={isWishlistModalOpen}
+                title={property?.title}
+                onClose={() => setIsWishlistModalOpen(false)}
+                onSave={async (note) => {
+                    if (!property?._id) return;
+                    await wishlist.toggle(property._id, note || '');
+                }}
             />
         </div>
     );
