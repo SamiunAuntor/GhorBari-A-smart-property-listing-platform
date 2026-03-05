@@ -1,7 +1,7 @@
 import { ObjectId } from "mongodb";
 import { RatingModel } from "../models/Rating.js";
 
-const ALLOWED_APPLICATION_STATUSES = ["deal-in-progress", "completed"];
+const ALLOWED_APPLICATION_STATUSES = ["completed", "cancelled"];
 
 const getRoleContext = (application, raterEmail) => {
     if (application?.owner?.email === raterEmail) return "owner_to_seeker";

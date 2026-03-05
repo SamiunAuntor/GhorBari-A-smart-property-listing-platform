@@ -315,16 +315,6 @@ const MyRequestedProperties = () => {
                                                     <span>Chat with Seller</span>
                                                 </button>
                                                 <button
-                                                    onClick={() => {
-                                                        setSelectedApplicationForRating(application);
-                                                        setRateModalOpen(true);
-                                                    }}
-                                                    className="flex items-center justify-center gap-1.5 px-4 py-2 bg-amber-50 text-amber-600 rounded-md hover:bg-amber-100 transition-all text-sm font-semibold"
-                                                >
-                                                    <Star size={16} />
-                                                    <span>Rate Seller</span>
-                                                </button>
-                                                <button
                                                     onClick={() => handleMarkDealCompleted(application)}
                                                     className="flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-md hover:bg-emerald-100 transition-all text-sm font-semibold"
                                                 >
@@ -339,6 +329,19 @@ const MyRequestedProperties = () => {
                                                     <span>Cancel Deal</span>
                                                 </button>
                                             </>
+                                        )}
+
+                                        {['completed', 'cancelled'].includes(application.status) && (
+                                            <button
+                                                onClick={() => {
+                                                    setSelectedApplicationForRating(application);
+                                                    setRateModalOpen(true);
+                                                }}
+                                                className="flex items-center justify-center gap-1.5 px-4 py-2 bg-amber-50 text-amber-600 rounded-md hover:bg-amber-100 transition-all text-sm font-semibold"
+                                            >
+                                                <Star size={16} />
+                                                <span>Rate Seller</span>
+                                            </button>
                                         )}
 
                                         {/* Withdraw button - only for pending and counter */}

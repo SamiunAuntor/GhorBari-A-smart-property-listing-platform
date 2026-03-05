@@ -427,16 +427,6 @@ const ApplicationManagementModal = ({ isOpen, onClose, property }) => {
                                                                     Chat with Buyer
                                                                 </button>
                                                                 <button
-                                                                    onClick={() => {
-                                                                        setSelectedApplicationForRating(application);
-                                                                        setRateModalOpen(true);
-                                                                    }}
-                                                                    className="w-full px-4 py-2 bg-amber-500 text-white rounded-md font-bold text-xs uppercase tracking-wider hover:bg-amber-600 transition-all flex items-center justify-center gap-2 mb-2"
-                                                                >
-                                                                    <Star size={14} />
-                                                                    Rate Buyer
-                                                                </button>
-                                                                <button
                                                                     onClick={async () => {
                                                                         const result = await Swal.fire({
                                                                             title: `Mark as ${property.listingType === 'sale' ? 'Sold' : 'Rented'}?`,
@@ -504,9 +494,33 @@ const ApplicationManagementModal = ({ isOpen, onClose, property }) => {
                                                             </>
                                                         )}
                                                         {(application.status === 'completed') && (
-                                                            <div className="px-4 py-2 bg-green-100 text-green-700 rounded-md font-bold text-xs uppercase tracking-wider text-center">
-                                                                Completed
+                                                            <div className="space-y-2">
+                                                                <div className="px-4 py-2 bg-green-100 text-green-700 rounded-md font-bold text-xs uppercase tracking-wider text-center">
+                                                                    Completed
+                                                                </div>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setSelectedApplicationForRating(application);
+                                                                        setRateModalOpen(true);
+                                                                    }}
+                                                                    className="w-full px-4 py-2 bg-amber-500 text-white rounded-md font-bold text-xs uppercase tracking-wider hover:bg-amber-600 transition-all flex items-center justify-center gap-2"
+                                                                >
+                                                                    <Star size={14} />
+                                                                    Rate Buyer
+                                                                </button>
                                                             </div>
+                                                        )}
+                                                        {(application.status === 'cancelled') && (
+                                                            <button
+                                                                onClick={() => {
+                                                                    setSelectedApplicationForRating(application);
+                                                                    setRateModalOpen(true);
+                                                                }}
+                                                                className="w-full px-4 py-2 bg-amber-500 text-white rounded-md font-bold text-xs uppercase tracking-wider hover:bg-amber-600 transition-all flex items-center justify-center gap-2"
+                                                            >
+                                                                <Star size={14} />
+                                                                Rate Buyer
+                                                            </button>
                                                         )}
                                                     </div>
                                                 </div>
@@ -551,16 +565,6 @@ const ApplicationManagementModal = ({ isOpen, onClose, property }) => {
                                                             >
                                                                 <MessageSquare size={12} />
                                                                 Chat
-                                                            </button>
-                                                            <button
-                                                                onClick={() => {
-                                                                    setSelectedApplicationForRating(application);
-                                                                    setRateModalOpen(true);
-                                                                }}
-                                                                className="px-3 py-1.5 bg-amber-500 text-white rounded-md text-xs font-semibold hover:bg-amber-600 flex items-center gap-1"
-                                                            >
-                                                                <Star size={12} />
-                                                                Rate
                                                             </button>
                                                             <button
                                                                 onClick={async () => {
@@ -628,6 +632,18 @@ const ApplicationManagementModal = ({ isOpen, onClose, property }) => {
                                                                 Cancel
                                                             </button>
                                                         </div>
+                                                    )}
+                                                    {['completed', 'cancelled'].includes(application.status) && (
+                                                        <button
+                                                            onClick={() => {
+                                                                setSelectedApplicationForRating(application);
+                                                                setRateModalOpen(true);
+                                                            }}
+                                                            className="px-3 py-1.5 bg-amber-500 text-white rounded-md text-xs font-semibold hover:bg-amber-600 flex items-center gap-1"
+                                                        >
+                                                            <Star size={12} />
+                                                            Rate
+                                                        </button>
                                                     )}
                                                 </div>
                                             </div>

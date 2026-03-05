@@ -86,7 +86,7 @@ const RateUserModal = ({ isOpen, onClose, application, counterpartyLabel = 'User
                         </div>
                     ) : !canRate ? (
                         <div className="py-8 text-center">
-                            <p className="text-sm text-red-500 font-semibold">You cannot rate for this application right now.</p>
+                            <p className="text-sm text-red-500 font-semibold">Rating is available only after deal is completed or cancelled.</p>
                         </div>
                     ) : (
                         <form onSubmit={handleSubmit} className="space-y-4">
