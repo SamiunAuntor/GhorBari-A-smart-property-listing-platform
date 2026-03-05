@@ -101,7 +101,7 @@ export const createApplication = async (req, res) => {
                 // Additional owner details from users collection
                 phone: ownerUser?.phone || "",
                 role: ownerUser?.role || "",
-                nidVerified: ownerUser?.nidVerified || false,
+                nidVerified: ownerUser?.nidVerified || "unverified",
                 rating: ownerUser?.rating || { totalRatings: 0, ratingCount: 0, average: 0 },
                 createdAt: ownerUser?.createdAt || null
             },
@@ -115,7 +115,7 @@ export const createApplication = async (req, res) => {
                 // Additional seeker details from users collection
                 phone: seekerUser?.phone || "",
                 role: seekerUser?.role || "",
-                nidVerified: seekerUser?.nidVerified || false,
+                nidVerified: seekerUser?.nidVerified || "unverified",
                 rating: seekerUser?.rating || { totalRatings: 0, ratingCount: 0, average: 0 },
                 createdAt: seekerUser?.createdAt || null
             },

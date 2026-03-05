@@ -8,7 +8,7 @@ import Loading from '../../Components/Loading';
 const AllUsers = () => {
     const axiosSecure = useAxiosSecure();
     const queryClient = useQueryClient();
-    const [filter, setFilter] = useState('all'); // all, verified, unverified
+    const [filter, setFilter] = useState('all'); // all, verified, pending, unverified, rejected
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
@@ -21,13 +21,18 @@ const AllUsers = () => {
         }
     });
 
-    const verifyMutation = useMutation({
-        mutationFn: async ({ id, status }) => {
-            return await axiosSecure.patch(`/admin/verify-user/${id}`, { status });
+    const verifyByRegistryMutation = useMutation({
+        mutationFn: async ({ id }) => {
+            return await axiosSecure.patch(`/admin/verify-user-nid/${id}`);
         },
-        onSuccess: () => {
+        onSuccess: (res) => {
             queryClient.invalidateQueries(['all-users']);
-            Swal.fire('Success!', 'User status has been updated.', 'success');
+            const matched = res?.data?.matched;
+            if (matched) {
+                Swal.fire('Verified!', 'User has been verified using NID registry.', 'success');
+            } else {
+                Swal.fire('Rejected', 'NID number not found in registry. User marked as rejected.', 'info');
+            }
         }
     });
 
@@ -41,16 +46,16 @@ const AllUsers = () => {
         }
     });
 
-    const handleToggleVerify = (user, newStatus) => {
+    const handleVerify = (user) => {
         Swal.fire({
-            title: `Make this user ${newStatus ? 'Verified' : 'Unverified'}?`,
+            title: 'Verify this user from NID registry?',
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#344767',
             confirmButtonText: 'Yes, update it!'
         }).then((result) => {
             if (result.isConfirmed) {
-                verifyMutation.mutate({ id: user._id, status: newStatus });
+                verifyByRegistryMutation.mutate({ id: user._id });
             }
         });
     };
@@ -104,9 +109,7 @@ const AllUsers = () => {
         return users.filter(user => {
             const matchesFilter = filter === 'all' 
                 ? true 
-                : filter === 'verified' 
-                    ? user.nidVerified === true 
-                    : user.nidVerified === false;
+                : (user.nidVerified || 'unverified') === filter;
             
             const matchesSearch = searchTerm === '' || 
                 user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -169,7 +172,9 @@ const AllUsers = () => {
                             >
                                 <option value="all">All Users</option>
                                 <option value="verified">Verified</option>
+                                <option value="pending">Pending</option>
                                 <option value="unverified">Unverified</option>
+                                <option value="rejected">Rejected</option>
                             </select>
                         </div>
                     </div>
@@ -262,18 +267,32 @@ const AllUsers = () => {
                                     </td>
                                     <td className="px-4 py-5 border-r border-gray-200 whitespace-nowrap">
                                         <div className="flex items-center justify-center">
-                                            <select
-                                                className={`text-[11px] font-black uppercase border-2 rounded-xl px-2 py-1.5 outline-none cursor-pointer transition-all ${
-                                                    user.nidVerified
+                                            {(() => {
+                                                const status = user.nidVerified || 'unverified';
+                                                if (status === 'pending') {
+                                                    return (
+                                                        <button
+                                                            onClick={() => handleVerify(user)}
+                                                            className="text-[11px] font-black uppercase border-2 rounded-xl px-3 py-1.5 outline-none cursor-pointer transition-all border-emerald-100 text-emerald-600 bg-emerald-50 hover:bg-emerald-100"
+                                                        >
+                                                            Verify User
+                                                        </button>
+                                                    );
+                                                }
+
+                                                const statusClass =
+                                                    status === 'verified'
                                                         ? 'border-emerald-100 text-emerald-600 bg-emerald-50'
-                                                        : 'border-amber-100 text-amber-600 bg-amber-50'
-                                                }`}
-                                                value={user.nidVerified ? "verified" : "unverified"}
-                                                onChange={(e) => handleToggleVerify(user, e.target.value === "verified")}
-                                            >
-                                                <option value="unverified">Unverified</option>
-                                                <option value="verified">Verified</option>
-                                            </select>
+                                                        : status === 'rejected'
+                                                            ? 'border-rose-100 text-rose-600 bg-rose-50'
+                                                            : 'border-amber-100 text-amber-600 bg-amber-50';
+
+                                                return (
+                                                    <span className={`text-[11px] font-black uppercase border-2 rounded-xl px-3 py-1.5 ${statusClass}`}>
+                                                        {status}
+                                                    </span>
+                                                );
+                                            })()}
                                         </div>
                                     </td>
                                     <td className="px-4 py-5 whitespace-nowrap">
@@ -342,4 +361,3 @@ const AllUsers = () => {
 };
 
 export default AllUsers;
-

@@ -16,9 +16,9 @@ export const getPublicStats = async (req, res) => {
             .countDocuments({ status: "sold" });
         const successfulDeals = rentedCount + soldCount;
 
-        // 3. Number of verified users (nidVerified: true)
+        // 3. Number of verified users (nidVerified: "verified")
         const verifiedUsers = await db.collection("users")
-            .countDocuments({ nidVerified: true });
+            .countDocuments({ nidVerified: "verified" });
 
         // 4. Total Properties (all statuses except removed)
         const totalProperties = await db.collection("properties")

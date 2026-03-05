@@ -112,7 +112,7 @@ export const createConversationFromApplication = async (req, res) => {
             otherUserEmail,
             otherUserName: otherUser?.name || "Unknown",
             otherUserImage: otherUser?.profileImage || null,
-            otherUserVerified: otherUser?.nidVerified || false
+            otherUserVerified: otherUser?.nidVerified === "verified"
         };
 
         return res.status(200).json({
@@ -150,7 +150,7 @@ export const getConversations = async (req, res) => {
                     otherUserEmail,
                     otherUserName: otherUser?.name || "Unknown",
                     otherUserImage: otherUser?.profileImage || null,
-                    otherUserVerified: otherUser?.nidVerified || false
+                    otherUserVerified: otherUser?.nidVerified === "verified"
                 };
             })
         );

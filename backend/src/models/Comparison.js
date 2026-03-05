@@ -171,7 +171,7 @@ export class ComparisonModel {
                     owner: owner || {
                         name: "Unknown",
                         profileImage: null,
-                        nidVerified: false,
+                        nidVerified: "unverified",
                         rating: { average: 0 }
                     }
                 };

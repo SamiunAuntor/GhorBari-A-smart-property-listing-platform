@@ -131,7 +131,7 @@ const BuyOrRentPage = () => {
                 const ownerEmail = prop.owner?.email;
                 const ownerInfo = ownerInfoMap.get(ownerEmail) || {};
                 const ownerRating = ownerInfo.rating?.average ?? ownerInfo.rating ?? 0;
-                const ownerNidVerified = !!ownerInfo.nidVerified;
+                const ownerNidVerified = ownerInfo.nidVerified === "verified";
                 const isVerified = !!prop.isOwnerVerified || ownerNidVerified;
                 const isPremium = (listingType === "rent" && Number(prop.price) > 50000) || (listingType === "sale" && Number(prop.price) > 100000);
 

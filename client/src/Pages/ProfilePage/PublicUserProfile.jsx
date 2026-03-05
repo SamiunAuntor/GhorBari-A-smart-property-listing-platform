@@ -42,6 +42,7 @@ const PublicUserProfile = () => {
             </div>
         );
     }
+    const isVerified = profile?.nidVerified === 'verified';
 
     const StatCard = ({ label, value, icon: Icon, color }) => (
         <div className="w-40 p-4 bg-white/5 rounded-lg border border-white/10 text-center">
@@ -72,7 +73,7 @@ const PublicUserProfile = () => {
 
                             {/* Verification capsule on avatar (same style as My Profile) */}
                             <div className="absolute -bottom-2 -right-2">
-                                {profile?.nidVerified ? (
+                                {isVerified ? (
                                     <span className="flex items-center gap-1.5 px-4 py-1.5 bg-emerald-500 text-white text-[10px] font-black uppercase rounded-full border-2 border-[#1A1A2E] shadow-lg">
                                         <ShieldCheck size={12} /> Verified
                                     </span>
@@ -125,15 +126,15 @@ const PublicUserProfile = () => {
                     </h3>
 
                     <div
-                        className={`flex items-center gap-4 p-6 rounded-md border-2 ${profile.nidVerified
+                        className={`flex items-center gap-4 p-6 rounded-md border-2 ${isVerified
                                 ? 'bg-emerald-50 border-emerald-100 text-emerald-700'
                                 : 'bg-rose-50 border-rose-100 text-rose-600'
                             }`}
                     >
-                        <ShieldCheck size={32} />
+                        {isVerified ? <ShieldCheck size={32} /> : <ShieldAlert size={32} />}
                         <div>
                             <p className="text-sm font-black uppercase">
-                                {profile.nidVerified ? 'NID Verified' : 'Not Verified'}
+                                {isVerified ? 'NID Verified' : 'Not Verified'}
                             </p>
                         </div>
                     </div>

@@ -138,6 +138,10 @@ const ProfilePage = () => {
             return showToast("NID number is required", "error");
         }
 
+        if (!/^(\d{10}|\d{16})$/.test(nidNumber)) {
+            return showToast("NID number must be exactly 10 or 16 digits", "error");
+        }
+
         setUploading(true);
         try {
             const nidImages = [];
@@ -190,6 +194,10 @@ const ProfilePage = () => {
 
     const memberSince = user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A';
     const lastUpdate = user?.updatedAt ? new Date(user.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Never';
+    const verificationState = user?.nidVerified || 'unverified';
+    const isVerified = verificationState === 'verified';
+    const isPending = verificationState === 'pending';
+    const isRejected = verificationState === 'rejected';
 
     return (
         <div className="w-[92%] mx-auto my-10 font-sans">
@@ -222,13 +230,13 @@ const ProfilePage = () => {
 
                         {/* Status Badge */}
                         <div className="absolute -bottom-2 -right-2">
-                            {user?.nidVerified ? (
+                            {isVerified ? (
                                 <span className="flex items-center gap-1.5 px-4 py-1.5 bg-emerald-500 text-white text-[10px] font-black uppercase rounded-full border-2 border-[#1A1A2E] shadow-lg">
                                     <ShieldCheck size={12} /> Verified
                                 </span>
                             ) : (
                                 <span className="flex items-center gap-1.5 px-4 py-1.5 bg-rose-500 text-white text-[10px] font-black uppercase rounded-full border-2 border-[#1A1A2E] shadow-lg">
-                                    <ShieldAlert size={12} /> Unverified
+                                    <ShieldAlert size={12} /> {isPending ? 'Pending' : isRejected ? 'Rejected' : 'Unverified'}
                                 </span>
                             )}
                         </div>
@@ -377,7 +385,7 @@ const ProfilePage = () => {
 
                     {/* NID Status */}
                     <div className="mt-auto">
-                        {!user?.nidVerified && !user?.nidSubmittedAt ? (
+                        {!isVerified && (verificationState === 'unverified' || verificationState === 'rejected') ? (
                             <button
                                 onClick={() => {
                                     if (!user?.phone || !String(user.phone).trim()) {
@@ -389,12 +397,17 @@ const ProfilePage = () => {
                                 }}
                                 className="w-full py-4 bg-orange-50 text-orange-600 rounded-2xl font-black uppercase text-[10px] tracking-widest border-2 border-dashed border-orange-200 hover:bg-orange-100 transition-all"
                             >
-                                Apply for Verification
+                                {isRejected ? 'Re-Apply for Verification' : 'Apply for Verification'}
                             </button>
-                        ) : user?.nidSubmittedAt && !user?.nidVerified ? (
+                        ) : isPending ? (
                             <div className="p-4 bg-blue-50 text-blue-700 rounded-2xl border border-blue-100 text-center">
                                 <p className="font-black text-[10px] uppercase tracking-widest">Review in Progress</p>
                                 <p className="text-[10px] font-bold opacity-80 mt-1">Manual review usually takes 24-48h</p>
+                            </div>
+                        ) : isRejected ? (
+                            <div className="p-4 bg-rose-50 text-rose-700 rounded-2xl border border-rose-100 text-center">
+                                <p className="font-black text-[10px] uppercase tracking-widest">Verification Rejected</p>
+                                <p className="text-[10px] font-bold opacity-80 mt-1">Please correct your NID info and apply again.</p>
                             </div>
                         ) : (
                             <div className="p-4 bg-emerald-50 text-emerald-700 rounded-2xl border border-emerald-100 text-center flex items-center justify-center gap-2">
@@ -428,8 +441,13 @@ const ProfilePage = () => {
                                     name="nidNumber"
                                     type="text"
                                     required
+                                    inputMode="numeric"
+                                    maxLength={16}
+                                    onInput={(e) => {
+                                        e.target.value = e.target.value.replace(/\D/g, "").slice(0, 16);
+                                    }}
                                     className="w-full px-5 py-3 rounded-2xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
-                                    placeholder="Enter your NID number"
+                                    placeholder="Enter 10 or 16 digit NID number"
                                 />
                             </div>
                             <div className="space-y-4">

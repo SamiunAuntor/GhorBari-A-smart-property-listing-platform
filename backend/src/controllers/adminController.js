@@ -12,7 +12,7 @@ export const getPendingVerifications = async (req, res) => {
         const users = await db.collection("users")
             .find({
                 nidNumber: { $exists: true, $ne: null },
-                nidVerified: false
+                nidVerified: "pending"
             })
             .sort({ nidSubmittedAt: -1 })
             .toArray();
@@ -34,12 +34,26 @@ export const verifyUser = async (req, res) => {
         const db = getDatabase();
     
         const id = req.params.id;
-    
-        const { status } = req.body; // boolean
-    
+
+        const { action } = req.body; // "approve" | "reject"
+
+        if (!["approve", "reject"].includes(action)) {
+            return res.status(400).send({ message: "action must be 'approve' or 'reject'" });
+        }
+
+        const nextState = action === "approve" ? "verified" : "rejected";
+
+        const existingUser = await db.collection("users").findOne({ _id: new ObjectId(id) });
+        if (!existingUser) {
+            return res.status(404).send({ message: "User not found" });
+        }
+        if (existingUser.nidVerified !== "pending") {
+            return res.status(400).send({ message: "Only pending verification requests can be processed" });
+        }
+
         const result = await db.collection("users").updateOne(
             { _id: new ObjectId(id) },
-            { $set: { nidVerified: status, nidVerifiedAt: status ? new Date() : null } }
+            { $set: { nidVerified: nextState, nidVerifiedAt: action === "approve" ? new Date() : null } }
         );
     
         res.send(result);
@@ -279,7 +293,7 @@ export const getStats = async (req, res) => {
     
         const db = getDatabase();
     
-        const pendingVer = await db.collection("users").countDocuments({ nidImages: { $exists: true, $ne: [] }, nidVerified: false });
+        const pendingVer = await db.collection("users").countDocuments({ nidImages: { $exists: true, $ne: [] }, nidVerified: "pending" });
     
         const pendingList = await db.collection("properties").countDocuments({ status: "pending" });
     
@@ -348,6 +362,9 @@ export const verifyUserByNidFromRegistry = async (req, res) => {
         if (!user) {
             return res.status(404).send({ message: "User not found" });
         }
+        if (user.nidVerified !== "pending") {
+            return res.status(400).send({ message: "Only pending verification requests can be processed" });
+        }
 
         if (!user.nidNumber || typeof user.nidNumber !== "string" || !user.nidNumber.trim()) {
             return res.status(400).send({ message: "User has not submitted a valid NID number" });
@@ -356,9 +373,19 @@ export const verifyUserByNidFromRegistry = async (req, res) => {
         const registryRecord = await findByNidNumber(user.nidNumber);
 
         if (!registryRecord) {
+            await db.collection("users").updateOne(
+                { _id: new ObjectId(id) },
+                {
+                    $set: {
+                        nidVerified: "rejected",
+                        nidVerifiedAt: null
+                    }
+                }
+            );
+
             return res.status(200).send({
                 matched: false,
-                nidVerified: user.nidVerified || false
+                nidVerified: "rejected"
             });
         }
 
@@ -366,7 +393,7 @@ export const verifyUserByNidFromRegistry = async (req, res) => {
             { _id: new ObjectId(id) },
             {
                 $set: {
-                    nidVerified: true,
+                    nidVerified: "verified",
                     nidVerifiedAt: new Date()
                 }
             }
@@ -374,7 +401,7 @@ export const verifyUserByNidFromRegistry = async (req, res) => {
 
         res.send({
             matched: true,
-            nidVerified: true
+            nidVerified: "verified"
         });
 
     } catch (error) {
