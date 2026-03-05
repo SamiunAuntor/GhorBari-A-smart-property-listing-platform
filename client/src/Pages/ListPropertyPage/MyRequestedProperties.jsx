@@ -3,17 +3,16 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
 import useAuth from '../../Hooks/useAuth';
 import useAxios from '../../Hooks/useAxios';
-import { MapPin, Eye, Loader2, Clock, CheckCircle, XCircle, MessageSquare, LogOut, Edit, Handshake, History, CheckCircle2, Ban } from 'lucide-react';
+import { MapPin, Eye, Loader2, Clock, CheckCircle, XCircle, MessageSquare, LogOut, Edit, Handshake, History, CheckCircle2, Ban, Star } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { showToast } from '../../Utilities/ToastMessage';
 import ReviseOfferModal from './ReviseOfferModal';
 import BiddingHistoryModal from './BiddingHistoryModal';
 import CounterOfferModal from './CounterOfferModal';
+import RateUserModal from './RateUserModal';
 import { 
     getApplicationStatusDisplay, 
-    getApplicationStatusMessage, 
-    getApplicationStatusColor,
-    isActiveApplicationStatus 
+    getApplicationStatusColor
 } from '../../Utilities/StatusDisplay';
 
 const MyRequestedProperties = () => {
@@ -27,6 +26,8 @@ const MyRequestedProperties = () => {
     const [selectedApplicationForHistory, setSelectedApplicationForHistory] = useState(null);
     const [counterModalOpen, setCounterModalOpen] = useState(false);
     const [selectedApplicationForCounter, setSelectedApplicationForCounter] = useState(null);
+    const [rateModalOpen, setRateModalOpen] = useState(false);
+    const [selectedApplicationForRating, setSelectedApplicationForRating] = useState(null);
 
     // Fetch User Applications
     const { data: applications = [], isLoading } = useQuery({
@@ -314,6 +315,16 @@ const MyRequestedProperties = () => {
                                                     <span>Chat with Seller</span>
                                                 </button>
                                                 <button
+                                                    onClick={() => {
+                                                        setSelectedApplicationForRating(application);
+                                                        setRateModalOpen(true);
+                                                    }}
+                                                    className="flex items-center justify-center gap-1.5 px-4 py-2 bg-amber-50 text-amber-600 rounded-md hover:bg-amber-100 transition-all text-sm font-semibold"
+                                                >
+                                                    <Star size={16} />
+                                                    <span>Rate Seller</span>
+                                                </button>
+                                                <button
                                                     onClick={() => handleMarkDealCompleted(application)}
                                                     className="flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-md hover:bg-emerald-100 transition-all text-sm font-semibold"
                                                 >
@@ -381,6 +392,19 @@ const MyRequestedProperties = () => {
                     setSelectedApplicationForHistory(null);
                 }}
                 application={selectedApplicationForHistory}
+            />
+
+            <RateUserModal
+                isOpen={rateModalOpen}
+                onClose={() => {
+                    setRateModalOpen(false);
+                    setSelectedApplicationForRating(null);
+                }}
+                application={selectedApplicationForRating}
+                counterpartyLabel="Seller"
+                onSuccess={() => {
+                    queryClient.invalidateQueries({ queryKey: ['my-applications', user?.email] });
+                }}
             />
         </>
     );
