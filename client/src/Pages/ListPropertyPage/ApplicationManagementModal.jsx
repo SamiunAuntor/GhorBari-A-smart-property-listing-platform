@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
-import { X, User, MessageSquare, CheckCircle, XCircle, Clock, Loader2, Send, Ban } from 'lucide-react';
+import { X, User, MessageSquare, CheckCircle, XCircle, Clock, Loader2, Send, Ban, Star } from 'lucide-react';
 import Swal from 'sweetalert2';
 import useAxios from '../../Hooks/useAxios';
 import useAuth from '../../Hooks/useAuth';
 import { showToast } from '../../Utilities/ToastMessage';
 import { getApplicationStatusDisplay, getApplicationStatusColor, isActiveApplicationStatus } from '../../Utilities/StatusDisplay';
 import OwnerCounterOfferModal from './OwnerCounterOfferModal';
+import RateUserModal from './RateUserModal';
 
 const ApplicationManagementModal = ({ isOpen, onClose, property }) => {
     // ALL HOOKS MUST BE CALLED FIRST - before any conditional returns
@@ -18,6 +19,8 @@ const ApplicationManagementModal = ({ isOpen, onClose, property }) => {
     const [processingId, setProcessingId] = useState(null);
     const [counterModalOpen, setCounterModalOpen] = useState(false);
     const [selectedApplicationForCounter, setSelectedApplicationForCounter] = useState(null);
+    const [rateModalOpen, setRateModalOpen] = useState(false);
+    const [selectedApplicationForRating, setSelectedApplicationForRating] = useState(null);
 
     // Fetch applications for this property
     const { data: applications = [], isLoading, error } = useQuery({
@@ -424,6 +427,16 @@ const ApplicationManagementModal = ({ isOpen, onClose, property }) => {
                                                                     Chat with Buyer
                                                                 </button>
                                                                 <button
+                                                                    onClick={() => {
+                                                                        setSelectedApplicationForRating(application);
+                                                                        setRateModalOpen(true);
+                                                                    }}
+                                                                    className="w-full px-4 py-2 bg-amber-500 text-white rounded-md font-bold text-xs uppercase tracking-wider hover:bg-amber-600 transition-all flex items-center justify-center gap-2 mb-2"
+                                                                >
+                                                                    <Star size={14} />
+                                                                    Rate Buyer
+                                                                </button>
+                                                                <button
                                                                     onClick={async () => {
                                                                         const result = await Swal.fire({
                                                                             title: `Mark as ${property.listingType === 'sale' ? 'Sold' : 'Rented'}?`,
@@ -540,6 +553,16 @@ const ApplicationManagementModal = ({ isOpen, onClose, property }) => {
                                                                 Chat
                                                             </button>
                                                             <button
+                                                                onClick={() => {
+                                                                    setSelectedApplicationForRating(application);
+                                                                    setRateModalOpen(true);
+                                                                }}
+                                                                className="px-3 py-1.5 bg-amber-500 text-white rounded-md text-xs font-semibold hover:bg-amber-600 flex items-center gap-1"
+                                                            >
+                                                                <Star size={12} />
+                                                                Rate
+                                                            </button>
+                                                            <button
                                                                 onClick={async () => {
                                                                     const result = await Swal.fire({
                                                                         title: `Mark as ${property.listingType === 'sale' ? 'Sold' : 'Rented'}?`,
@@ -634,6 +657,19 @@ const ApplicationManagementModal = ({ isOpen, onClose, property }) => {
                 application={selectedApplicationForCounter}
                 property={property}
                 onSuccess={handleCounterModalSuccess}
+            />
+
+            <RateUserModal
+                isOpen={rateModalOpen}
+                onClose={() => {
+                    setRateModalOpen(false);
+                    setSelectedApplicationForRating(null);
+                }}
+                application={selectedApplicationForRating}
+                counterpartyLabel="Buyer"
+                onSuccess={() => {
+                    queryClient.invalidateQueries({ queryKey: ['property-applications', property?._id] });
+                }}
             />
         </div>
     );

@@ -2,6 +2,7 @@ import { MongoClient } from "mongodb";
 
 import dotenv from "dotenv";
 import { WishlistModel } from "../models/Wishlist.js";
+import { RatingModel } from "../models/Rating.js";
 
 dotenv.config();
 
@@ -17,21 +18,29 @@ export async function connectDatabase() {
 
         db = client.db("GhorBari");
 
-        console.log("✅ MongoDB connected");
+        console.log("MongoDB connected");
 
         // ensure wishlist indexes
         try {
             await WishlistModel.ensureIndexes(db);
-            console.log("✅ Wishlist indexes ensured");
+            console.log("Wishlist indexes ensured");
         } catch (err) {
-            console.error("❌ Failed to ensure wishlist indexes", err);
+            console.error("Failed to ensure wishlist indexes", err);
+        }
+
+        // ensure rating indexes
+        try {
+            await RatingModel.ensureIndexes(db);
+            console.log("Rating indexes ensured");
+        } catch (err) {
+            console.error("Failed to ensure rating indexes", err);
         }
 
         return db;
 
     } catch (error) {
 
-        console.error("❌ MongoDB connection failed:", error.message);
+        console.error("MongoDB connection failed:", error.message);
 
         throw error;
 
@@ -44,4 +53,3 @@ export function getDatabase() {
     return db;
     
 }
-
