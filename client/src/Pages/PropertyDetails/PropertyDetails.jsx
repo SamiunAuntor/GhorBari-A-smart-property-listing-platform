@@ -390,10 +390,10 @@ out center;
                             )}
                             <span
                                 className={`text-sm font-bold px-3.5 py-1.5 rounded-full flex items-center gap-1.5 border
-                                    ${ownerProfile?.nidVerified ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-white/40 text-red-600 border-red-100"}`}
+                                    ${ownerProfile?.nidVerified === "verified" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-white/40 text-red-600 border-red-100"}`}
                                 style={{ backdropFilter: "saturate(120%) blur(4px)" }}
                             >
-                                {ownerProfile?.nidVerified ? <><CheckCircle size={14} /> Verified</> : <><XCircle size={14} /> Unverified</>}
+                                {ownerProfile?.nidVerified === "verified" ? <><CheckCircle size={14} /> Verified</> : <><XCircle size={14} /> Unverified</>}
                             </span>
                         </div>
 

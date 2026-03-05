@@ -110,7 +110,8 @@ const WishlistPropertyCard = ({ property }) => {
         ? isPremium
         : (listingType === "rent" ? Number(price) > 50000 : Number(price) > 100000);
 
-    const verifiedFlag = Boolean(ownerNidVerified ?? isOwnerVerified ?? property.isOwnerVerified ?? property.isVerified ?? verified);
+    const rawVerified = ownerNidVerified ?? isOwnerVerified ?? property.isOwnerVerified ?? property.isVerified ?? verified;
+    const verifiedFlag = typeof rawVerified === "string" ? rawVerified === "verified" : Boolean(rawVerified);
     const ownerName = owner?.name || owner?.email || "Unknown";
     const wishlisted = isInWishlist(property._id);
     const isSelected = comparison.isPropertySelected(property._id);

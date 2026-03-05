@@ -24,7 +24,7 @@ export const registerUser = async (req, res) => {
             profileImage,
             phone: phone || "",
             role: userRole,
-            nidVerified: false,
+            nidVerified: "unverified",
             nidImages: [],
             nidSubmittedAt: null,
             nidVerifiedAt: null,
@@ -166,6 +166,12 @@ export const submitNid = async (req, res) => {
             return res.status(400).send({ message: "NID number is required" });
         }
 
+        const normalizedNid = nidNumber.trim();
+        const isValidNid = /^(\d{10}|\d{16})$/.test(normalizedNid);
+        if (!isValidNid) {
+            return res.status(400).send({ message: "NID number must be exactly 10 or 16 digits" });
+        }
+
         // Ensure user has a phone number before allowing verification request
         const existingUser = await db.collection("users").findOne({ email });
         const hasPhone =
@@ -183,10 +189,10 @@ export const submitNid = async (req, res) => {
 
         const updatedDoc = {
             $set: {
-                nidNumber: nidNumber.trim(),
+                nidNumber: normalizedNid,
                 nidImages: cleanedImages,
                 nidSubmittedAt: new Date(),
-                nidVerified: false,
+                nidVerified: "pending",
                 nidVerifiedAt: null
             }
         };

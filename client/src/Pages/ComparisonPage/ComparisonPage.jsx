@@ -96,7 +96,7 @@ const ComparisonPage = () => {
                 const ownerEmail = prop.owner?.email;
                 const ownerInfo = ownerInfoMap.get(ownerEmail) || {};
                 const ownerRating = ownerInfo.rating?.average ?? ownerInfo.rating ?? 0;
-                const ownerNidVerified = !!ownerInfo.nidVerified;
+                const ownerNidVerified = ownerInfo.nidVerified === "verified";
                 const isVerified = !!prop.isOwnerVerified || ownerNidVerified;
 
                 return {
@@ -473,7 +473,8 @@ const ComparisonPage = () => {
                                             <tr className="border-b border-gray-300">
                                                 <td className="px-6 py-4 font-bold text-gray-900 bg-gray-50 border-r border-gray-300">Verified</td>
                                                 {selectedProperties.map((prop) => {
-                                                    const isVerified = Boolean(prop.ownerNidVerified || prop.isOwnerVerified || prop.verified);
+                                                    const rawVerified = prop.ownerNidVerified ?? prop.isOwnerVerified ?? prop.verified;
+                                                    const isVerified = typeof rawVerified === "string" ? rawVerified === "verified" : Boolean(rawVerified);
                                                     return (
                                                         <td key={prop._id} className="px-6 py-4 text-center border-r border-gray-300 last:border-r-0">
                                                             <div className="flex items-center justify-center gap-1">

@@ -17,16 +17,6 @@ const PendingUserVerifications = () => {
         }
     });
 
-    const verifyMutation = useMutation({
-        mutationFn: async ({ id, status }) => {
-            return await axiosSecure.patch(`/admin/verify-user/${id}`, { status });
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries(['pending-users']);
-            Swal.fire('Success!', 'User status has been updated.', 'success');
-        }
-    });
-
     const verifyByRegistryMutation = useMutation({
         mutationFn: async ({ id }) => {
             return await axiosSecure.patch(`/admin/verify-user-nid/${id}`);
@@ -37,24 +27,10 @@ const PendingUserVerifications = () => {
             if (matched) {
                 Swal.fire('Verified!', 'User has been verified using NID registry.', 'success');
             } else {
-                Swal.fire('No Match', 'NID number not found in registry. User remains unverified.', 'info');
+                Swal.fire('Rejected', 'NID number not found in registry. User marked as rejected.', 'info');
             }
         }
     });
-
-    const handleMarkUnverified = (user) => {
-        Swal.fire({
-            title: 'Mark this user Unverified?',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#344767',
-            confirmButtonText: 'Yes, update it!'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                verifyMutation.mutate({ id: user._id, status: false });
-            }
-        });
-    };
 
     const showNidInfo = (images) => {
         Swal.fire({
@@ -160,24 +136,13 @@ const PendingUserVerifications = () => {
                                 </td>
                                 <td className="px-4 py-5">
                                     <div className="flex items-center justify-center gap-2">
-                                        {!user.nidVerified && (
-                                            <button
-                                                onClick={() => verifyByRegistryMutation.mutate({ id: user._id })}
-                                                className="px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-100 transition-all flex items-center gap-2 text-[11px] font-black uppercase tracking-widest border border-emerald-100"
-                                            >
-                                                <UserCheck size={14} />
-                                                Verify User
-                                            </button>
-                                        )}
-                                        {user.nidVerified && (
-                                            <button
-                                                onClick={() => handleMarkUnverified(user)}
-                                                className="px-4 py-2 bg-amber-50 text-amber-600 rounded-xl hover:bg-amber-100 transition-all flex items-center gap-2 text-[11px] font-black uppercase tracking-widest border border-amber-100"
-                                            >
-                                                <UserCheck size={14} />
-                                                Mark Unverified
-                                            </button>
-                                        )}
+                                        <button
+                                            onClick={() => verifyByRegistryMutation.mutate({ id: user._id })}
+                                            className="px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-100 transition-all flex items-center gap-2 text-[11px] font-black uppercase tracking-widest border border-emerald-100"
+                                        >
+                                            <UserCheck size={14} />
+                                            Verify User
+                                        </button>
                                     </div>
                                 </td>
                             </tr>
