@@ -127,6 +127,15 @@ const LocateButton = ({ setValue, setPosition, disabled = false }) => {
 const MapPicker = ({ setValue, flyTo, disabled = false }) => {
     const [position, setPosition] = useState(null);
 
+    useEffect(() => {
+        if (flyTo?.center && Array.isArray(flyTo.center) && flyTo.center.length === 2) {
+            const [lat, lng] = flyTo.center;
+            if (Number.isFinite(lat) && Number.isFinite(lng)) {
+                setPosition({ lat, lng });
+            }
+        }
+    }, [flyTo]);
+
     return (
         <div className="relative h-full w-full">
             <MapContainer

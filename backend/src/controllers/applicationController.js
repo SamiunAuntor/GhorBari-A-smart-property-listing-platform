@@ -13,6 +13,60 @@ import {
     queueOfferRevisedEmail
 } from "../services/emailNotificationService.js";
 
+async function getProfileIdentity(db, email, fallback = {}) {
+    if (!email) {
+        return fallback;
+    }
+
+    const user = await db.collection("users").findOne(
+        { email },
+        {
+            projection: {
+                name: 1,
+                profileImage: 1,
+                phone: 1,
+                role: 1,
+                nidVerified: 1,
+                rating: 1,
+                createdAt: 1
+            }
+        }
+    );
+
+    return {
+        name: user?.name || fallback.name || "User",
+        photoURL: user?.profileImage || fallback.photoURL || "",
+        phone: user?.phone ?? fallback.phone ?? "",
+        role: user?.role ?? fallback.role ?? "",
+        nidVerified: user?.nidVerified ?? fallback.nidVerified ?? "unverified",
+        rating: user?.rating || fallback.rating || { totalRatings: 0, ratingCount: 0, average: 0 },
+        createdAt: user?.createdAt || fallback.createdAt || null
+    };
+}
+
+async function enrichApplicationParticipants(db, application) {
+    if (!application) {
+        return application;
+    }
+
+    const [ownerIdentity, seekerIdentity] = await Promise.all([
+        getProfileIdentity(db, application.owner?.email, application.owner || {}),
+        getProfileIdentity(db, application.seeker?.email, application.seeker || {})
+    ]);
+
+    return {
+        ...application,
+        owner: {
+            ...application.owner,
+            ...ownerIdentity
+        },
+        seeker: {
+            ...application.seeker,
+            ...seekerIdentity
+        }
+    };
+}
+
 // Create a new application/proposal
 export const createApplication = async (req, res) => {
     try {
@@ -77,6 +131,10 @@ export const createApplication = async (req, res) => {
         // Get complete owner information from users collection
         const ownerUser = await db.collection("users").findOne({ email: property.owner.email });
         const occurredAt = new Date();
+        const seekerName = seekerUser?.name || req.user.name || "User";
+        const seekerPhoto = seekerUser?.profileImage || req.user.photoURL || "";
+        const ownerName = ownerUser?.name || property.owner.name || "User";
+        const ownerPhoto = ownerUser?.profileImage || property.owner.photoURL || "";
 
         // Create comprehensive application with all necessary information
         const application = {
@@ -107,9 +165,9 @@ export const createApplication = async (req, res) => {
             // Complete Owner Information
             owner: {
                 uid: property.owner.uid,
-                name: property.owner.name,
+                name: ownerName,
                 email: property.owner.email,
-                photoURL: property.owner.photoURL,
+                photoURL: ownerPhoto,
                 // Additional owner details from users collection
                 phone: ownerUser?.phone || "",
                 role: ownerUser?.role || "",
@@ -121,9 +179,9 @@ export const createApplication = async (req, res) => {
             // Complete Seeker Information
             seeker: {
                 uid: req.user.uid,
-                name: req.user.name,
+                name: seekerName,
                 email: req.user.email,
-                photoURL: req.user.photoURL,
+                photoURL: seekerPhoto,
                 // Additional seeker details from users collection
                 phone: seekerUser?.phone || "",
                 role: seekerUser?.role || "",
@@ -145,7 +203,7 @@ export const createApplication = async (req, res) => {
                         _id: new ObjectId(),
                         sender: "seeker",
                         senderEmail: req.user.email,
-                        senderName: req.user.name,
+                        senderName: seekerName,
                         text: data.message,
                         actionType: "application_submitted",
                         linkedPrice: Number(data.proposedPrice),
@@ -237,8 +295,9 @@ export const getMyApplications = async (req, res) => {
                 const property = await db.collection("properties").findOne({
                     _id: app.propertyId
                 });
+                const enrichedApplication = await enrichApplicationParticipants(db, app);
                 return {
-                    ...app,
+                    ...enrichedApplication,
                     property: property || null
                 };
             })
@@ -286,8 +345,11 @@ export const getPropertyApplications = async (req, res) => {
             .find({ propertyId: new ObjectId(propertyId) })
             .sort({ createdAt: -1 })
             .toArray();
+        const enrichedApplications = await Promise.all(
+            applications.map((application) => enrichApplicationParticipants(db, application))
+        );
 
-        res.send(applications);
+        res.send(enrichedApplications);
 
     } catch (error) {
         console.error("GET /property/:propertyId/applications error:", error);
@@ -394,6 +456,7 @@ export const updateApplicationStatus = async (req, res) => {
                 });
             }
         }
+        const ownerIdentity = await getProfileIdentity(db, req.user.email, application.owner || {});
 
         // Prepare update data with comprehensive tracking
         const occurredAt = new Date();
@@ -453,7 +516,7 @@ export const updateApplicationStatus = async (req, res) => {
                     _id: new ObjectId(),
                     sender: "owner",
                     senderEmail: req.user.email,
-                    senderName: req.user.name,
+                    senderName: ownerIdentity.name,
                     text: message,
                     actionType: "counter_offer",
                     linkedPrice: Number(proposedPrice),
@@ -493,15 +556,23 @@ export const updateApplicationStatus = async (req, res) => {
             return res.status(404).send({ message: "Application not found" });
         }
 
+        const applicationForNotification = await enrichApplicationParticipants(db, {
+            ...application,
+            ...setData,
+            proposedPrice: setData.proposedPrice ?? application.proposedPrice,
+            message: setData.message ?? application.message,
+            finalPrice: setData.finalPrice ?? application.finalPrice
+        });
+
         if (status === "counter") {
-            await queueCounterOfferEmail(application, occurredAt, {
+            await queueCounterOfferEmail(applicationForNotification, occurredAt, {
                 proposedPrice: Number(proposedPrice),
                 message: message || ""
             });
         } else if (status === "rejected") {
-            await queueApplicationRejectedEmail(application, occurredAt);
+            await queueApplicationRejectedEmail(applicationForNotification, occurredAt);
         } else if (status === "deal-in-progress") {
-            await queueDealInProgressEmail(application, occurredAt);
+            await queueDealInProgressEmail(applicationForNotification, occurredAt);
         }
 
         res.send({ 
@@ -584,7 +655,8 @@ export const withdrawApplication = async (req, res) => {
             return res.status(404).send({ message: "Application not found" });
         }
 
-        await queueApplicationWithdrawnEmail(application, occurredAt);
+        const applicationForNotification = await enrichApplicationParticipants(db, application);
+        await queueApplicationWithdrawnEmail(applicationForNotification, occurredAt);
 
         res.send({ 
             success: true, 
@@ -630,12 +702,13 @@ export const sendApplicationMessage = async (req, res) => {
         }
 
         const senderRole = isSeeker ? "seeker" : isOwner ? "owner" : "admin";
+        const senderIdentity = await getProfileIdentity(db, req.user.email, isSeeker ? application.seeker || {} : isOwner ? application.owner || {} : req.user);
 
         const messageEntry = {
             _id: new ObjectId(),
             sender: senderRole,
             senderEmail: req.user.email,
-            senderName: req.user.name,
+            senderName: senderIdentity.name,
             text: text.trim(),
             actionType: "manual_message",
             linkedPrice: application.proposedPrice || application.originalListingPrice || null,
@@ -720,6 +793,7 @@ export const reviseApplication = async (req, res) => {
         }
 
         const occurredAt = new Date();
+        const seekerIdentity = await getProfileIdentity(db, req.user.email, application.seeker || {});
 
         // Prepare update data (same structure as owner's counter)
         const setData = {
@@ -767,7 +841,7 @@ export const reviseApplication = async (req, res) => {
                         _id: new ObjectId(),
                         sender: "seeker",
                         senderEmail: req.user.email,
-                        senderName: req.user.name,
+                        senderName: seekerIdentity.name,
                         text: message,
                         actionType: "offer_revised",
                         linkedPrice: Number(proposedPrice),
@@ -793,7 +867,14 @@ export const reviseApplication = async (req, res) => {
             return res.status(404).send({ message: "Application not found" });
         }
 
-        await queueOfferRevisedEmail(application, occurredAt, {
+        const applicationForNotification = await enrichApplicationParticipants(db, {
+            ...application,
+            ...setData,
+            proposedPrice: Number(proposedPrice),
+            message: message ?? application.message
+        });
+
+        await queueOfferRevisedEmail(applicationForNotification, occurredAt, {
             proposedPrice: Number(proposedPrice),
             message: message || ""
         });
@@ -951,7 +1032,13 @@ export const acceptCounterOffer = async (req, res) => {
         // NOTE: We do NOT auto-reject other applications here because deal-in-progress is not final.
         // Other applications will only be auto-rejected when the deal is marked as sold/rented (completed).
 
-        await queueCounterAcceptedEmail(application, occurredAt);
+        const applicationForNotification = await enrichApplicationParticipants(db, {
+            ...application,
+            status: "deal-in-progress",
+            finalPrice: application.proposedPrice
+        });
+
+        await queueCounterAcceptedEmail(applicationForNotification, occurredAt);
 
         res.send({ 
             success: true, 
@@ -1174,21 +1261,21 @@ export const updateDealStatus = async (req, res) => {
             );
         }
 
+        const applicationForNotification = await enrichApplicationParticipants(db, {
+            ...application,
+            finalPrice: application.finalPrice ?? application.proposedPrice,
+            status: dealStatus
+        });
+
         if (dealStatus === "completed") {
             await queueDealCompletedEmails(
-                {
-                    ...application,
-                    finalPrice: application.finalPrice ?? application.proposedPrice
-                },
+                applicationForNotification,
                 occurredAt,
                 completedPropertyStatus
             );
         } else {
             await queueDealCancelledEmails(
-                {
-                    ...application,
-                    finalPrice: application.finalPrice ?? application.proposedPrice
-                },
+                applicationForNotification,
                 occurredAt
             );
         }
