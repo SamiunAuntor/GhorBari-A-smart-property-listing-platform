@@ -1,6 +1,17 @@
 import { getDatabase } from "../config/db.js";
 import { ObjectId } from "mongodb";
 import { ConversationModel } from "../models/Chat.js";
+import {
+    queueApplicationRejectedEmail,
+    queueApplicationSubmittedEmail,
+    queueApplicationWithdrawnEmail,
+    queueCounterAcceptedEmail,
+    queueCounterOfferEmail,
+    queueDealCancelledEmails,
+    queueDealCompletedEmails,
+    queueDealInProgressEmail,
+    queueOfferRevisedEmail
+} from "../services/emailNotificationService.js";
 
 // Create a new application/proposal
 export const createApplication = async (req, res) => {
@@ -65,6 +76,7 @@ export const createApplication = async (req, res) => {
         
         // Get complete owner information from users collection
         const ownerUser = await db.collection("users").findOne({ email: property.owner.email });
+        const occurredAt = new Date();
 
         // Create comprehensive application with all necessary information
         const application = {
@@ -137,7 +149,7 @@ export const createApplication = async (req, res) => {
                         text: data.message,
                         actionType: "application_submitted",
                         linkedPrice: Number(data.proposedPrice),
-                        timestamp: new Date()
+                        timestamp: occurredAt
                     }]
                     : [])
             ],
@@ -151,7 +163,7 @@ export const createApplication = async (req, res) => {
                     proposedPrice: Number(data.proposedPrice),
                     status: "pending",
                     message: data.message || "",
-                    timestamp: new Date()
+                    timestamp: occurredAt
                 }
             ],
 
@@ -161,7 +173,7 @@ export const createApplication = async (req, res) => {
                     price: Number(data.proposedPrice),
                     setBy: "seeker",
                     setByEmail: req.user.email,
-                    timestamp: new Date(),
+                    timestamp: occurredAt,
                     note: "Initial offer"
                 }
             ],
@@ -172,20 +184,25 @@ export const createApplication = async (req, res) => {
                     status: "pending",
                     changedBy: "seeker",
                     changedByEmail: req.user.email,
-                    timestamp: new Date(),
+                    timestamp: occurredAt,
                     note: "Application submitted"
                 }
             ],
 
             // Timestamps
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            lastActionAt: new Date(),
+            createdAt: occurredAt,
+            updatedAt: occurredAt,
+            lastActionAt: occurredAt,
             lastActionBy: "seeker",
             lastActionByEmail: req.user.email
         };
 
         const result = await db.collection("applications").insertOne(application);
+
+        await queueApplicationSubmittedEmail(
+            { ...application, _id: result.insertedId },
+            occurredAt
+        );
 
         res.status(201).send({ 
             success: true, 
@@ -241,15 +258,11 @@ export const getPropertyApplications = async (req, res) => {
         const db = getDatabase();
         const propertyId = req.params.propertyId;
 
-        console.log("GET /property/:propertyId/applications - propertyId:", propertyId);
-        console.log("User email:", req.user?.email);
-
         if (!propertyId) {
             return res.status(400).send({ message: "Property ID is required" });
         }
 
         if (!ObjectId.isValid(propertyId)) {
-            console.error("Invalid property ID format:", propertyId);
             return res.status(400).send({ message: "Invalid property ID format" });
         }
 
@@ -259,15 +272,10 @@ export const getPropertyApplications = async (req, res) => {
         });
 
         if (!property) {
-            console.error("Property not found for ID:", propertyId);
             return res.status(404).send({ message: "Property not found" });
         }
 
-        console.log("Property owner email:", property.owner?.email);
-        console.log("Request user email:", req.user?.email);
-
         if (property.owner.email !== req.user.email) {
-            console.error("Permission denied - owner mismatch");
             return res.status(403).send({ 
                 message: "You don't have permission to view applications for this property" 
             });
@@ -278,8 +286,6 @@ export const getPropertyApplications = async (req, res) => {
             .find({ propertyId: new ObjectId(propertyId) })
             .sort({ createdAt: -1 })
             .toArray();
-
-        console.log("Found applications:", applications.length);
 
         res.send(applications);
 
@@ -390,10 +396,11 @@ export const updateApplicationStatus = async (req, res) => {
         }
 
         // Prepare update data with comprehensive tracking
+        const occurredAt = new Date();
         const setData = {
             status: status,
-            updatedAt: new Date(),
-            lastActionAt: new Date(),
+            updatedAt: occurredAt,
+            lastActionAt: occurredAt,
             lastActionBy: "owner",
             lastActionByEmail: req.user.email
         };
@@ -421,7 +428,7 @@ export const updateApplicationStatus = async (req, res) => {
                 price: Number(proposedPrice),
                 setBy: "owner",
                 setByEmail: req.user.email,
-                timestamp: new Date(),
+                timestamp: occurredAt,
                 note: "Owner counter offer"
             };
             pushData.negotiationHistory = {
@@ -431,13 +438,13 @@ export const updateApplicationStatus = async (req, res) => {
                 proposedPrice: Number(proposedPrice),
                 status: "counter",
                 message: message || "",
-                timestamp: new Date()
+                timestamp: occurredAt
             };
             pushData.statusHistory = {
                 status: "counter",
                 changedBy: "owner",
                 changedByEmail: req.user.email,
-                timestamp: new Date(),
+                timestamp: occurredAt,
                 note: "Owner sent counter offer"
             };
             // Embed a message entry for this counter offer if message is provided
@@ -450,7 +457,7 @@ export const updateApplicationStatus = async (req, res) => {
                     text: message,
                     actionType: "counter_offer",
                     linkedPrice: Number(proposedPrice),
-                    timestamp: new Date()
+                    timestamp: occurredAt
                 };
             }
         } else {
@@ -460,13 +467,13 @@ export const updateApplicationStatus = async (req, res) => {
                 actor: "owner",
                 actorEmail: req.user.email,
                 status: status,
-                timestamp: new Date()
+                timestamp: occurredAt
             };
             pushData.statusHistory = {
                 status: status,
                 changedBy: "owner",
                 changedByEmail: req.user.email,
-                timestamp: new Date(),
+                timestamp: occurredAt,
                 note: status === "deal-in-progress" ? "Owner accepted application - Deal in progress" : "Owner rejected application"
             };
         }
@@ -484,6 +491,17 @@ export const updateApplicationStatus = async (req, res) => {
 
         if (result.matchedCount === 0) {
             return res.status(404).send({ message: "Application not found" });
+        }
+
+        if (status === "counter") {
+            await queueCounterOfferEmail(application, occurredAt, {
+                proposedPrice: Number(proposedPrice),
+                message: message || ""
+            });
+        } else if (status === "rejected") {
+            await queueApplicationRejectedEmail(application, occurredAt);
+        } else if (status === "deal-in-progress") {
+            await queueDealInProgressEmail(application, occurredAt);
         }
 
         res.send({ 
@@ -530,14 +548,16 @@ export const withdrawApplication = async (req, res) => {
             });
         }
 
+        const occurredAt = new Date();
+
         // Update application status with history
         const result = await db.collection("applications").updateOne(
             { _id: new ObjectId(applicationId) },
             {
                 $set: {
                     status: "withdrawn",
-                    updatedAt: new Date(),
-                    lastActionAt: new Date(),
+                    updatedAt: occurredAt,
+                    lastActionAt: occurredAt,
                     lastActionBy: "seeker",
                     lastActionByEmail: req.user.email
                 },
@@ -547,13 +567,13 @@ export const withdrawApplication = async (req, res) => {
                         actor: "seeker",
                         actorEmail: req.user.email,
                         status: "withdrawn",
-                        timestamp: new Date()
+                        timestamp: occurredAt
                     },
                     statusHistory: {
                         status: "withdrawn",
                         changedBy: "seeker",
                         changedByEmail: req.user.email,
-                        timestamp: new Date(),
+                        timestamp: occurredAt,
                         note: "Seeker withdrew application"
                     }
                 }
@@ -563,6 +583,8 @@ export const withdrawApplication = async (req, res) => {
         if (result.matchedCount === 0) {
             return res.status(404).send({ message: "Application not found" });
         }
+
+        await queueApplicationWithdrawnEmail(application, occurredAt);
 
         res.send({ 
             success: true, 
@@ -697,12 +719,14 @@ export const reviseApplication = async (req, res) => {
             });
         }
 
+        const occurredAt = new Date();
+
         // Prepare update data (same structure as owner's counter)
         const setData = {
             status: "pending",
             proposedPrice: Number(proposedPrice),
-            updatedAt: new Date(),
-            lastActionAt: new Date(),
+            updatedAt: occurredAt,
+            lastActionAt: occurredAt,
             lastActionBy: "seeker",
             lastActionByEmail: req.user.email
         };
@@ -718,7 +742,7 @@ export const reviseApplication = async (req, res) => {
                 price: Number(proposedPrice),
                 setBy: "seeker",
                 setByEmail: req.user.email,
-                timestamp: new Date(),
+                timestamp: occurredAt,
                 note: "Seeker revised offer"
             },
             negotiationHistory: {
@@ -728,13 +752,13 @@ export const reviseApplication = async (req, res) => {
                 proposedPrice: Number(proposedPrice),
                 status: "pending",
                 message: message || "",
-                timestamp: new Date()
+                timestamp: occurredAt
             },
             statusHistory: {
                 status: "pending",
                 changedBy: "seeker",
                 changedByEmail: req.user.email,
-                timestamp: new Date(),
+                timestamp: occurredAt,
                 note: "Seeker revised offer - waiting for owner response"
             },
             ...(message !== undefined && message !== ""
@@ -747,7 +771,7 @@ export const reviseApplication = async (req, res) => {
                         text: message,
                         actionType: "offer_revised",
                         linkedPrice: Number(proposedPrice),
-                        timestamp: new Date()
+                        timestamp: occurredAt
                     }
                 }
                 : {})
@@ -768,6 +792,11 @@ export const reviseApplication = async (req, res) => {
         if (result.matchedCount === 0) {
             return res.status(404).send({ message: "Application not found" });
         }
+
+        await queueOfferRevisedEmail(application, occurredAt, {
+            proposedPrice: Number(proposedPrice),
+            message: message || ""
+        });
 
         res.send({ 
             success: true, 
@@ -823,6 +852,7 @@ export const acceptCounterOffer = async (req, res) => {
         }
 
         // If property already has an active proposal, cancel it first
+        const occurredAt = new Date();
         if (property.active_proposal_id) {
             const existingApplicationId = property.active_proposal_id;
             
@@ -834,8 +864,8 @@ export const acceptCounterOffer = async (req, res) => {
                     {
                         $set: {
                             status: "cancelled",
-                            updatedAt: new Date(),
-                            lastActionAt: new Date(),
+                            updatedAt: occurredAt,
+                            lastActionAt: occurredAt,
                             lastActionBy: "system",
                             lastActionByEmail: "system@ghorbari.com"
                         },
@@ -845,14 +875,14 @@ export const acceptCounterOffer = async (req, res) => {
                                 actor: "system",
                                 actorEmail: "system@ghorbari.com",
                                 status: "cancelled",
-                                timestamp: new Date(),
+                                timestamp: occurredAt,
                                 note: "Deal cancelled automatically: Another application was accepted"
                             },
                             statusHistory: {
                                 status: "cancelled",
                                 changedBy: "system",
                                 changedByEmail: "system@ghorbari.com",
-                                timestamp: new Date(),
+                                timestamp: occurredAt,
                                 note: "Deal cancelled automatically: Another application was accepted"
                             }
                         }
@@ -868,8 +898,8 @@ export const acceptCounterOffer = async (req, res) => {
                 $set: {
                     status: "deal-in-progress",
                     finalPrice: application.proposedPrice, // Closing price = owner's counter offer
-                    updatedAt: new Date(),
-                    lastActionAt: new Date(),
+                    updatedAt: occurredAt,
+                    lastActionAt: occurredAt,
                     lastActionBy: "seeker",
                     lastActionByEmail: req.user.email
                 },
@@ -880,14 +910,14 @@ export const acceptCounterOffer = async (req, res) => {
                         actorEmail: req.user.email,
                         proposedPrice: application.proposedPrice, // Owner's counter price
                         status: "deal-in-progress",
-                        timestamp: new Date(),
+                        timestamp: occurredAt,
                         note: "Seeker accepted owner's counter offer - Deal in progress"
                     },
                     statusHistory: {
                         status: "deal-in-progress",
                         changedBy: "seeker",
                         changedByEmail: req.user.email,
-                        timestamp: new Date(),
+                        timestamp: occurredAt,
                         note: "Seeker accepted owner's counter offer - Deal in progress"
                     }
                 }
@@ -905,7 +935,7 @@ export const acceptCounterOffer = async (req, res) => {
                 $set: {
                     status: "deal-in-progress",
                     active_proposal_id: new ObjectId(applicationId),
-                    updatedAt: new Date()
+                    updatedAt: occurredAt
                 }
             }
         );
@@ -920,6 +950,8 @@ export const acceptCounterOffer = async (req, res) => {
 
         // NOTE: We do NOT auto-reject other applications here because deal-in-progress is not final.
         // Other applications will only be auto-rejected when the deal is marked as sold/rented (completed).
+
+        await queueCounterAcceptedEmail(application, occurredAt);
 
         res.send({ 
             success: true, 
@@ -993,6 +1025,9 @@ export const updateDealStatus = async (req, res) => {
             });
         }
 
+        const occurredAt = new Date();
+        let completedPropertyStatus = null;
+
         if (dealStatus === "completed") {
             // Check if application is in deal-in-progress
             if (application.status !== "deal-in-progress") {
@@ -1010,7 +1045,7 @@ export const updateDealStatus = async (req, res) => {
                     $set: {
                         status: finalStatus,
                         visibility: "hidden",
-                        updatedAt: new Date()
+                        updatedAt: occurredAt
                     }
                 }
             );
@@ -1026,8 +1061,8 @@ export const updateDealStatus = async (req, res) => {
                 {
                     $set: {
                         status: "rejected",
-                        updatedAt: new Date(),
-                        lastActionAt: new Date(),
+                        updatedAt: occurredAt,
+                        lastActionAt: occurredAt,
                         lastActionBy: "system",
                         lastActionByEmail: req.user.email
                     },
@@ -1036,7 +1071,7 @@ export const updateDealStatus = async (req, res) => {
                             status: "rejected",
                             changedBy: "system",
                             changedByEmail: req.user.email,
-                            timestamp: new Date(),
+                            timestamp: occurredAt,
                             note: "Auto-rejected: Property deal has been finalized (sold/rented)"
                         },
                         negotiationHistory: {
@@ -1044,7 +1079,7 @@ export const updateDealStatus = async (req, res) => {
                             actor: "system",
                             actorEmail: req.user.email,
                             status: "rejected",
-                            timestamp: new Date(),
+                            timestamp: occurredAt,
                             note: "Auto-rejected because property deal has been finalized (sold/rented)"
                         }
                     }
@@ -1057,8 +1092,8 @@ export const updateDealStatus = async (req, res) => {
                 {
                     $set: {
                         status: "completed",
-                        updatedAt: new Date(),
-                        lastActionAt: new Date(),
+                        updatedAt: occurredAt,
+                        lastActionAt: occurredAt,
                         lastActionBy: actorType,
                         lastActionByEmail: req.user.email
                     },
@@ -1068,19 +1103,21 @@ export const updateDealStatus = async (req, res) => {
                             actor: actorType,
                             actorEmail: req.user.email,
                             status: "completed",
-                            timestamp: new Date(),
+                            timestamp: occurredAt,
                             note: `Deal completed - Property marked as ${finalStatus}`
                         },
                         statusHistory: {
                             status: "completed",
                             changedBy: actorType,
                             changedByEmail: req.user.email,
-                            timestamp: new Date(),
+                            timestamp: occurredAt,
                             note: `Deal completed - Property marked as ${finalStatus}`
                         }
                     }
                 }
             );
+
+            completedPropertyStatus = finalStatus;
 
         } else if (dealStatus === "cancelled") {
             // Check if application is in deal-in-progress
@@ -1099,7 +1136,7 @@ export const updateDealStatus = async (req, res) => {
                         status: previousStatus,
                         active_proposal_id: null,
                         previousStatus: null, // Clear previous status
-                        updatedAt: new Date()
+                        updatedAt: occurredAt
                     }
                 }
             );
@@ -1111,8 +1148,8 @@ export const updateDealStatus = async (req, res) => {
                 {
                     $set: {
                         status: "cancelled",
-                        updatedAt: new Date(),
-                        lastActionAt: new Date(),
+                        updatedAt: occurredAt,
+                        lastActionAt: occurredAt,
                         lastActionBy: actorType,
                         lastActionByEmail: req.user.email
                     },
@@ -1122,18 +1159,37 @@ export const updateDealStatus = async (req, res) => {
                             actor: actorType,
                             actorEmail: req.user.email,
                             status: "cancelled",
-                            timestamp: new Date(),
+                            timestamp: occurredAt,
                             note: "Deal cancelled"
                         },
                         statusHistory: {
                             status: "cancelled",
                             changedBy: actorType,
                             changedByEmail: req.user.email,
-                            timestamp: new Date(),
+                            timestamp: occurredAt,
                             note: "Deal cancelled"
                         }
                     }
                 }
+            );
+        }
+
+        if (dealStatus === "completed") {
+            await queueDealCompletedEmails(
+                {
+                    ...application,
+                    finalPrice: application.finalPrice ?? application.proposedPrice
+                },
+                occurredAt,
+                completedPropertyStatus
+            );
+        } else {
+            await queueDealCancelledEmails(
+                {
+                    ...application,
+                    finalPrice: application.finalPrice ?? application.proposedPrice
+                },
+                occurredAt
             );
         }
 

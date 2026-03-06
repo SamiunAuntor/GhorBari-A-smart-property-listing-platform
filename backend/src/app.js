@@ -21,6 +21,7 @@ import statsRoutes from "./routes/statsRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
 import wishlistRoutes from "./routes/wishlistRoutes.js";
 import ratingRoutes from "./routes/ratingRoutes.js";
+import internalRoutes from "./routes/internalRoutes.js";
 
 dotenv.config();
 
@@ -59,5 +60,6 @@ app.use("/", statsRoutes);
 app.use("/", aiRoutes);
 app.use("/", wishlistRoutes);
 app.use("/", ratingRoutes);
+app.use("/", internalRoutes);
 
 export default app;

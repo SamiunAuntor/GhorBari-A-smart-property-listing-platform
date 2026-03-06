@@ -3,6 +3,7 @@ import { MongoClient } from "mongodb";
 import dotenv from "dotenv";
 import { WishlistModel } from "../models/Wishlist.js";
 import { RatingModel } from "../models/Rating.js";
+import { EmailJobModel } from "../models/EmailJob.js";
 
 dotenv.config();
 
@@ -34,6 +35,13 @@ export async function connectDatabase() {
             console.log("Rating indexes ensured");
         } catch (err) {
             console.error("Failed to ensure rating indexes", err);
+        }
+
+        try {
+            await EmailJobModel.ensureIndexes(db);
+            console.log("Email job indexes ensured");
+        } catch (err) {
+            console.error("Failed to ensure email job indexes", err);
         }
 
         return db;

@@ -5,6 +5,7 @@ import { connectDatabase } from "./src/config/db.js";
 import { initializeSocket } from "./src/config/socket.js";
 
 import { setupSocketEvents } from "./src/events/chatEvents.js";
+import { startEmailJobCron } from "./src/jobs/emailJobCron.js";
 
 import http from "http";
 
@@ -24,6 +25,10 @@ async function startServer() {
 
         // Setup Socket.io event handlers
         setupSocketEvents();
+
+        if (process.env.ENABLE_EMAIL_JOB_CRON !== "false") {
+            startEmailJobCron();
+        }
 
         httpServer.listen(PORT, () => {
 
