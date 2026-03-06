@@ -4,7 +4,8 @@ import * as aiController from "../controllers/aiController.js";
 
 const router = express.Router();
 
-// Send message to Gemini AI
+// Send message to AI assistant
 router.post("/api/ai/send-message", verifyToken, aiController.sendMessageToAI);
+router.post("/api/ai/generate-property-description", verifyToken, aiController.generatePropertyDescription);
 
 export default router;

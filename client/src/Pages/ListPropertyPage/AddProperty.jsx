@@ -29,12 +29,27 @@ const DIVISION_COORDS = {
     rangpur: [25.7439, 89.2752],
 };
 
+const DESCRIPTION_REQUIRED_FIELDS = [
+    "title",
+    "listingType",
+    "propertyType",
+    "price",
+    "areaSqFt",
+    "division_id",
+    "district_id",
+    "upazila_id",
+    "address"
+];
+
+const getLabelById = (items, id) => items.find(item => String(item.id) === String(id))?.name || "";
+
 const AddProperty = () => {
     const { user } = useAuth();
     const { register, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm();
     const [mapView, setMapView] = useState({ center: [23.6850, 90.3563], zoom: 7 });
     const [selectedFiles, setSelectedFiles] = useState([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
     const lastUpdateRef = useRef({ division: null, district: null, upazila: null });
     const axios = useAxios();
 
@@ -49,6 +64,15 @@ const AddProperty = () => {
     const watchDist = watch("district_id");
     const watchUpazila = watch("upazila_id");
     const watchCoords = watch("coordinates");
+    const watchTitle = watch("title");
+    const watchPrice = watch("price");
+    const watchAreaSqFt = watch("areaSqFt");
+    const watchRoomCount = watch("roomCount");
+    const watchBathrooms = watch("bathrooms");
+    const watchFloorCount = watch("floorCount");
+    const watchTotalUnits = watch("totalUnits");
+    const watchOverview = watch("overview");
+    const watchAmenities = watch("amenities");
 
     useEffect(() => {
         if (watchDiv && lastUpdateRef.current.division !== watchDiv) {
@@ -97,6 +121,75 @@ const AddProperty = () => {
 
     const removeFile = (index) => {
         setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const canGenerateDescription = () => {
+        const baseFieldsReady = DESCRIPTION_REQUIRED_FIELDS.every((field) => {
+            const value = watch(field);
+            return value !== undefined && value !== null && String(value).trim() !== "";
+        });
+
+        if (!baseFieldsReady) {
+            return false;
+        }
+
+        if (Number(watchPrice) <= 0 || Number(watchAreaSqFt) <= 0) {
+            return false;
+        }
+
+        if (propertyType === "flat") {
+            return Number(watchRoomCount) >= 1 && Number(watchBathrooms) >= 1;
+        }
+
+        if (propertyType === "building") {
+            return Number(watchFloorCount) >= 1 && Number(watchTotalUnits) >= 1;
+        }
+
+        return false;
+    };
+
+    const handleGenerateDescription = async () => {
+        if (!canGenerateDescription()) {
+            showToast("Fill the main property details first", "error");
+            return;
+        }
+
+        setIsGeneratingDescription(true);
+
+        try {
+            const token = await user?.getIdToken();
+            const payload = {
+                title: watchTitle,
+                listingType,
+                propertyType,
+                price: Number(watchPrice),
+                areaSqFt: Number(watchAreaSqFt),
+                roomCount: propertyType === "flat" ? Number(watchRoomCount) : undefined,
+                bathrooms: propertyType === "flat" ? Number(watchBathrooms) : undefined,
+                floorCount: propertyType === "building" ? Number(watchFloorCount) : undefined,
+                totalUnits: propertyType === "building" ? Number(watchTotalUnits) : undefined,
+                divisionName: getLabelById(divisions, watchDiv),
+                districtName: getLabelById(districts, watchDist),
+                upazilaName: getLabelById(upazilas, watchUpazila) || getLabelById(thanas, watchUpazila),
+                address: watch("address"),
+                amenities: Array.isArray(watchAmenities) ? watchAmenities : watchAmenities ? [watchAmenities] : []
+            };
+
+            const { data } = await axios.post("/api/ai/generate-property-description", payload, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (!data?.success || !data?.description) {
+                throw new Error(data?.error || "Failed to generate description");
+            }
+
+            setValue("overview", data.description, { shouldDirty: true, shouldValidate: true });
+            showToast("Description generated successfully", "success");
+        } catch (error) {
+            showToast(error?.response?.data?.error || "Could not generate description right now", "error");
+        } finally {
+            setIsGeneratingDescription(false);
+        }
     };
 
     const onSubmit = async (data) => {
@@ -356,6 +449,32 @@ const AddProperty = () => {
                     <div className="lg:col-span-12">
                         <div className="bg-white rounded-lg p-8 shadow-sm border border-gray-100">
                             <h3 className={sectionTitle}><Info className="text-orange-500" size={20} /> Detailed Overview</h3>
+                            <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                                <p className="text-xs font-medium text-gray-500">
+                                    Let AI draft a clean property description from your filled details. You can edit it freely before posting.
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={handleGenerateDescription}
+                                    disabled={isSubmitting || isGeneratingDescription || !canGenerateDescription()}
+                                    className={`inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] transition-all ${
+                                        isSubmitting || isGeneratingDescription || !canGenerateDescription()
+                                            ? "cursor-not-allowed border border-gray-200 bg-gray-100 text-gray-400"
+                                            : "border border-orange-200 bg-orange-50 text-orange-600 hover:bg-orange-100"
+                                    }`}
+                                >
+                                    {isGeneratingDescription ? (
+                                        <>
+                                            <Loader2 className="animate-spin" size={14} />
+                                            Generating...
+                                        </>
+                                    ) : watchOverview?.trim() ? (
+                                        "Regenerate Description"
+                                    ) : (
+                                        "Generate Description"
+                                    )}
+                                </button>
+                            </div>
                             <textarea {...register("overview", { required: "Detailed description is required", minLength: { value: 20, message: "Please describe in at least 20 characters" } })} className={`${inputStyle("overview")} min-h-[150px] py-4 resize-none`} placeholder="Describe your property's best features..." />
                             <ErrorMsg name="overview" />
                         </div>

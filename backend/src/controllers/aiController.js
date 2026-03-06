@@ -1,129 +1,120 @@
-import axios from "axios";
+import { buildPropertyDescriptionPrompt, validatePropertyDescriptionPayload } from "../services/propertyDescriptionPromptService.js";
+import { generateGroqText, getGroqModel } from "../services/groqService.js";
 
-const GROQ_API_KEY = process.env.GROQ_API_KEY;
+const GROQ_MODEL = getGroqModel();
 
-// Groq model (free tier - using Llama 3.1 8B instant)
-const GROQ_MODEL = "llama-3.1-8b-instant";
-const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
+function handleAiControllerError(res, error, fallbackMessage) {
+    const statusCode = error.response?.status || error.statusCode || 500;
+    const errorMessage =
+        error.response?.data?.error?.message ||
+        error.response?.data?.message ||
+        error.details ||
+        error.message;
+
+    if (statusCode === 401 || statusCode === 403) {
+        return res.status(401).json({
+            success: false,
+            error: "AI service authentication failed. Please check your API key.",
+            details: "Invalid or expired API key"
+        });
+    }
+
+    if (statusCode === 429) {
+        return res.status(429).json({
+            success: false,
+            error: "AI service is experiencing high demand. Please try again in a few moments.",
+            details: "Rate limit reached"
+        });
+    }
+
+    if (statusCode === 503 || statusCode === 500) {
+        return res.status(statusCode === 500 ? 503 : statusCode).json({
+            success: false,
+            error: fallbackMessage,
+            details: errorMessage
+        });
+    }
+
+    return res.status(500).json({
+        success: false,
+        error: "An error occurred while processing your request.",
+        details: errorMessage
+    });
+}
 
 export const sendMessageToAI = async (req, res) => {
     try {
         const { message } = req.body;
-        const userEmail = req.user?.email || "anonymous";
-
-        console.log(`📨 AI Request received from ${userEmail}: "${message.substring(0, 50)}..."`);
 
         if (!message || !message.trim()) {
-            console.warn("❌ Message is empty");
-            return res.status(400).json({ 
+            return res.status(400).json({
                 success: false,
-                error: "Message is required" 
+                error: "Message is required"
             });
         }
 
-        if (!GROQ_API_KEY) {
-            console.error("❌ GROQ_API_KEY is not set in environment variables");
-            return res.status(500).json({ 
-                success: false,
-                error: "AI service is not configured" 
-            });
-        }
-
-        try {
-            console.log(`🤖 Sending request to Groq (${GROQ_MODEL})...`);
-            
-            const systemPrompt = `You are Ghor AI, a helpful real estate assistant for a property rental and sales platform called "GHOR BARI" (which means "home" in Bengali). You help users find properties, answer questions about real estate, provide advice on renting or buying properties in Bangladesh, and assist with any property-related queries.
+        const systemPrompt = `You are Ghor AI, a helpful real estate assistant for a property rental and sales platform called "GHOR BARI" (which means "home" in Bengali). You help users find properties, answer questions about real estate, provide advice on renting or buying properties in Bangladesh, and assist with any property-related queries.
 
 Be friendly, professional, and helpful. Keep responses concise and informative.`;
 
-            const response = await axios.post(
-                GROQ_API_URL,
-                {
-                    model: GROQ_MODEL,
-                    messages: [
-                        {
-                            role: "system",
-                            content: systemPrompt
-                        },
-                        {
-                            role: "user",
-                            content: message
-                        }
-                    ],
-                    temperature: 0.7,
-                    max_tokens: 512,
-                    top_p: 0.95,
-                },
-                {
-                    timeout: 30000,
-                    headers: {
-                        "Authorization": `Bearer ${GROQ_API_KEY}`,
-                        "Content-Type": "application/json",
-                    }
-                }
-            );
-
-            // Groq returns OpenAI-compatible format
-            if (response.status === 200 && response.data?.choices?.[0]?.message?.content) {
-                const aiResponse = response.data.choices[0].message.content;
-                
-                if (aiResponse) {
-                    console.log(`✅ Successfully received response from Groq for user: ${userEmail}`);
-                    return res.status(200).json({
-                        success: true,
-                        response: aiResponse.trim(),
-                        model: GROQ_MODEL
-                    });
-                }
-            }
-
-            console.error("❌ Invalid response structure from Groq");
-            return res.status(503).json({
-                success: false,
-                error: "Unable to process your request. AI service returned invalid response.",
-                details: "Response parsing failed"
+        try {
+            const aiResponse = await generateGroqText({
+                systemPrompt,
+                userPrompt: message,
+                temperature: 0.7,
+                maxTokens: 512,
+                topP: 0.95
             });
-            
+
+            return res.status(200).json({
+                success: true,
+                response: aiResponse,
+                model: GROQ_MODEL
+            });
         } catch (error) {
-            const statusCode = error.response?.status;
-            const errorMessage = error.response?.data?.error?.message || error.response?.data?.message || error.message;
-            
-            console.error(`❌ Groq API error (${statusCode}):`, errorMessage);
+            return handleAiControllerError(res, error, "AI service is temporarily unavailable. Please try again later.");
+        }
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            error: "An unexpected error occurred. Please try again later.",
+            details: error.message
+        });
+    }
+};
 
-            // Handle specific errors
-            if (statusCode === 401 || statusCode === 403) {
-                return res.status(401).json({
-                    success: false,
-                    error: "AI service authentication failed. Please check your API key.",
-                    details: "Invalid or expired API key"
-                });
-            }
+export const generatePropertyDescription = async (req, res) => {
+    try {
+        const validationError = validatePropertyDescriptionPayload(req.body);
 
-            if (statusCode === 429) {
-                return res.status(429).json({
-                    success: false,
-                    error: "AI service is experiencing high demand. Please try again in a few moments.",
-                    details: "Rate limit reached"
-                });
-            }
-
-            if (statusCode === 503 || statusCode === 500) {
-                return res.status(503).json({
-                    success: false,
-                    error: "AI service is temporarily unavailable. Please try again later.",
-                    details: errorMessage
-                });
-            }
-
-            return res.status(500).json({
+        if (validationError) {
+            return res.status(400).json({
                 success: false,
-                error: "An error occurred while processing your request.",
-                details: errorMessage
+                error: validationError
             });
         }
 
+        const systemPrompt = `You write polished real-estate listing descriptions for a Bangladesh property marketplace. Your writing should be natural, trustworthy, concise, and conversion-friendly.`;
+        const userPrompt = buildPropertyDescriptionPrompt(req.body);
+
+        try {
+            const description = await generateGroqText({
+                systemPrompt,
+                userPrompt,
+                temperature: 0.6,
+                maxTokens: 220,
+                topP: 0.9
+            });
+
+            return res.status(200).json({
+                success: true,
+                description: description.replace(/\s+/g, " ").trim(),
+                model: GROQ_MODEL
+            });
+        } catch (error) {
+            return handleAiControllerError(res, error, "Description generation is temporarily unavailable. Please try again later.");
+        }
     } catch (error) {
-        console.error("❌ Unexpected error in sendMessageToAI:", error);
         return res.status(500).json({
             success: false,
             error: "An unexpected error occurred. Please try again later.",
