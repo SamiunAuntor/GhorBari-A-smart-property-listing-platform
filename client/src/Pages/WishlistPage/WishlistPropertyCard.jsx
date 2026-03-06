@@ -114,7 +114,6 @@ const WishlistPropertyCard = ({ property }) => {
     const verifiedFlag = typeof rawVerified === "string" ? rawVerified === "verified" : Boolean(rawVerified);
     const ownerName = owner?.name || owner?.email || "Unknown";
     const wishlisted = isInWishlist(property._id);
-    const isSelected = comparison.isPropertySelected(property._id);
 
     const goToDetails = () => {
         navigate(`/property-details/${property._id}`);
@@ -124,7 +123,7 @@ const WishlistPropertyCard = ({ property }) => {
         <>
             <div
                 onClick={goToDetails}
-                className={`max-w-sm rounded-lg overflow-hidden shadow-lg bg-white group cursor-pointer transition-all duration-300 hover:shadow-2xl border ${isSelected ? "border-blue-500 border-2" : "border-gray-100"} mx-auto w-full flex flex-col h-[420px]`}
+                className="max-w-sm rounded-lg overflow-hidden shadow-lg bg-white group cursor-pointer transition-all duration-300 hover:shadow-2xl border border-gray-100 mx-auto w-full flex flex-col h-[420px]"
             >
                 <div className="relative h-64 overflow-hidden">
                     <img src={imageUrl} alt={title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
@@ -170,27 +169,19 @@ const WishlistPropertyCard = ({ property }) => {
                         >
                             <FileText size={18} />
                         </button>
-                    </div>
 
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            if (isSelected) {
-                                comparison.removeProperty(property._id);
-                            } else {
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
                                 comparison.addProperty(property);
-                            }
-                        }}
-                        className={`absolute bottom-4 right-4 p-2 rounded-md transition-all z-20 opacity-0 group-hover:opacity-100 flex items-center gap-1 ${
-                            isSelected
-                                ? "bg-blue-500 text-white shadow-lg"
-                                : "bg-white/80 text-gray-700 hover:bg-white shadow-md"
-                        }`}
-                        title={isSelected ? "Remove from comparison" : "Add to comparison"}
-                    >
-                        <Scale size={16} />
-                        <span className="text-xs font-bold">{isSelected ? "Added" : "Compare"}</span>
-                    </button>
+                                navigate("/compare");
+                            }}
+                            className="p-2 bg-white/80 backdrop-blur-sm rounded-md text-gray-600 hover:text-blue-600 hover:bg-white transition-colors shadow-md"
+                            title="Compare with other properties"
+                        >
+                            <Scale size={18} />
+                        </button>
+                    </div>
 
                     <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
                         <div className="flex flex-wrap justify-between gap-2 text-white text-xs font-medium">

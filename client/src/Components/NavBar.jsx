@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Menu, X, User, Scale } from "lucide-react";
+import { Menu, X, User } from "lucide-react";
 import { Link, NavLink } from "react-router";
 import useAuth from "../Hooks/useAuth";
 import { showToast } from "../Utilities/ToastMessage";
@@ -51,19 +51,6 @@ const Navbar = () => {
                 {/* NAV LINKS - DESKTOP */}
                 <div className="hidden md:flex items-center gap-2 ml-auto mr-4">
                     <NavLink
-                        to="/"
-                        className={({ isActive }) =>
-                            `px-4 py-2 rounded-md text-sm md:text-base font-medium transition-all duration-200
-              ${isActive
-                                ? "bg-orange-500 text-white"
-                                : "text-gray-700 hover:bg-orange-400/20 hover:text-orange-600"
-                            }`
-                        }
-                    >
-                        Home
-                    </NavLink>
-
-                    <NavLink
                         to="/properties"
                         className={({ isActive }) =>
                             `px-4 py-2 rounded-md text-sm md:text-base font-medium transition-all duration-200
@@ -76,18 +63,20 @@ const Navbar = () => {
                         Marketplace
                     </NavLink>
 
-                    <NavLink
-                        to="/list-property"
-                        className={({ isActive }) =>
-                            `px-4 py-2 rounded-md text-sm md:text-base font-medium transition-all duration-200
+                    {user && (
+                        <NavLink
+                            to="/list-property"
+                            className={({ isActive }) =>
+                                `px-4 py-2 rounded-md text-sm md:text-base font-medium transition-all duration-200
               ${isActive
-                                ? "bg-orange-500 text-white"
-                                : "text-gray-700 hover:bg-orange-400/20 hover:text-orange-600"
-                            }`
-                        }
-                    >
-                        My Properties
-                    </NavLink>
+                                    ? "bg-orange-500 text-white"
+                                    : "text-gray-700 hover:bg-orange-400/20 hover:text-orange-600"
+                                }`
+                            }
+                        >
+                            My Properties
+                        </NavLink>
+                    )}
 
                     {/* Only show Messages if logged in */}
                     {user && (
@@ -228,20 +217,6 @@ const Navbar = () => {
                     <div className="md:hidden bg-white/70 backdrop-blur-md shadow-inner border-t border-white/20">
                         <div className="w-11/12 mx-auto flex flex-col py-3 gap-2">
                             <NavLink
-                                to="/"
-                                onClick={() => setMenuOpen(false)}
-                                className={({ isActive }) =>
-                                    `px-4 py-2 rounded-md text-sm font-medium transition-all duration-200
-                ${isActive
-                                        ? "bg-orange-500 text-white"
-                                        : "text-gray-700 hover:bg-orange-400/20 hover:text-orange-600"
-                                    }`
-                                }
-                            >
-                                Home
-                            </NavLink>
-
-                            <NavLink
                                 to="/properties"
                                 onClick={() => setMenuOpen(false)}
                                 className={({ isActive }) =>
@@ -255,19 +230,21 @@ const Navbar = () => {
                                 Marketplace
                             </NavLink>
 
-                            <NavLink
-                                to="/list-property"
-                                onClick={() => setMenuOpen(false)}
-                                className={({ isActive }) =>
-                                    `px-4 py-2 rounded-md text-sm font-medium transition-all duration-200
+                            {user && (
+                                <NavLink
+                                    to="/list-property"
+                                    onClick={() => setMenuOpen(false)}
+                                    className={({ isActive }) =>
+                                        `px-4 py-2 rounded-md text-sm font-medium transition-all duration-200
                 ${isActive
-                                        ? "bg-orange-500 text-white"
-                                        : "text-gray-700 hover:bg-orange-400/20 hover:text-orange-600"
-                                    }`
-                                }
-                            >
-                                My Properties
-                            </NavLink>
+                                            ? "bg-orange-500 text-white"
+                                            : "text-gray-700 hover:bg-orange-400/20 hover:text-orange-600"
+                                        }`
+                                    }
+                                >
+                                    My Properties
+                                </NavLink>
+                            )}
 
                             {user && (
                                 <NavLink

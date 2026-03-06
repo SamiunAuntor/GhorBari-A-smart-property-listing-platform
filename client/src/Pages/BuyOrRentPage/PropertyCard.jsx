@@ -3,9 +3,11 @@ import { Bed, Bath, Square, MapPin, Star, Heart, CheckCircle, Tag, Layers, XCirc
 import useComparison from "../../Hooks/useComparison";
 import useWishlist from "../../Hooks/useWishlist";
 import WishlistNoteModal from "../../Components/WishlistNoteModal";
+import { useNavigate } from "react-router";
 
 const PropertyCard = ({ property }) => {
     const comparison = useComparison();
+    const navigate = useNavigate();
     const [showWishlistModal, setShowWishlistModal] = React.useState(false);
 
     const {
@@ -47,7 +49,6 @@ const PropertyCard = ({ property }) => {
     const rawVerified = ownerNidVerified ?? isOwnerVerified ?? property.isOwnerVerified ?? property.isVerified ?? verified;
     const verifiedFlag = typeof rawVerified === "string" ? rawVerified === "verified" : Boolean(rawVerified);
     const ownerName = owner?.name || owner?.email || "Unknown";
-    const isSelected = comparison.isPropertySelected(property._id);
 
     const { isInWishlist, toggle } = useWishlist();
     const wishlisted = isInWishlist(property._id);
@@ -63,7 +64,7 @@ const PropertyCard = ({ property }) => {
 
     return (
         <>
-            <div className={`max-w-sm rounded-lg overflow-hidden shadow-lg bg-white group cursor-pointer transition-all duration-300 hover:shadow-2xl border ${isSelected ? "border-blue-500 border-2" : "border-gray-100"} mx-auto w-full flex flex-col h-[420px]`}>
+            <div className="max-w-sm rounded-lg overflow-hidden shadow-lg bg-white group cursor-pointer transition-all duration-300 hover:shadow-2xl border border-gray-100 mx-auto w-full flex flex-col h-[420px]">
                 <div className="relative h-64 overflow-hidden">
                     <img src={imageUrl} alt={title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
 
@@ -86,33 +87,27 @@ const PropertyCard = ({ property }) => {
                         </span>
                     </div>
 
-                    <button
-                        onClick={handleWishlistClick}
-                        className={`absolute top-4 right-4 p-2 bg-white/80 backdrop-blur-sm rounded-md hover:bg-white transition-colors shadow-md z-20 ${wishlisted ? "text-red-500" : "text-gray-600 hover:text-red-500"}`}
-                        title={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
-                    >
-                        <Heart size={20} fill={wishlisted ? "currentColor" : "none"} />
-                    </button>
+                    <div className="absolute top-4 right-4 z-20 flex flex-col gap-2">
+                        <button
+                            onClick={handleWishlistClick}
+                            className={`p-2 bg-white/80 backdrop-blur-sm rounded-md hover:bg-white transition-colors shadow-md ${wishlisted ? "text-red-500" : "text-gray-600 hover:text-red-500"}`}
+                            title={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
+                        >
+                            <Heart size={20} fill={wishlisted ? "currentColor" : "none"} />
+                        </button>
 
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            if (isSelected) {
-                                comparison.removeProperty(property._id);
-                            } else {
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
                                 comparison.addProperty(property);
-                            }
-                        }}
-                        className={`absolute bottom-4 right-4 p-2 rounded-md transition-all z-20 opacity-0 group-hover:opacity-100 flex items-center gap-1 ${
-                            isSelected
-                                ? "bg-blue-500 text-white shadow-lg"
-                                : "bg-white/80 text-gray-700 hover:bg-white shadow-md"
-                        }`}
-                        title={isSelected ? "Remove from comparison" : "Add to comparison"}
-                    >
-                        <Scale size={16} />
-                        <span className="text-xs font-bold">{isSelected ? "Added" : "Compare"}</span>
-                    </button>
+                                navigate("/compare");
+                            }}
+                            className="p-2 bg-white/80 backdrop-blur-sm rounded-md text-gray-600 hover:text-blue-600 hover:bg-white transition-colors shadow-md"
+                            title="Compare with other properties"
+                        >
+                            <Scale size={18} />
+                        </button>
+                    </div>
 
                     <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
                         <div className="flex flex-wrap justify-between gap-2 text-white text-xs font-medium">
