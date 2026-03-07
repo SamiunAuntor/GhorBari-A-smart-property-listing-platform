@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useNavigate } from "react-router";
 import useComparison from "../../Hooks/useComparison";
 import useAxios from "../../Hooks/useAxios";
 import useAuth from "../../Hooks/useAuth";
@@ -15,13 +16,14 @@ import {
   XCircle,
   ShieldCheck,
   Download,
-  Share2,
   Loader2,
   Layers,
   Building2,
+  Send,
 } from "lucide-react";
 
 const ComparisonPage = () => {
+  const navigate = useNavigate();
   const { selectedProperties, removeProperty, clearAllProperties, addProperty } = useComparison();
   const axiosInstance = useAxios();
   const { user, loading: authLoading } = useAuth();
@@ -588,11 +590,11 @@ const ComparisonPage = () => {
                         })}
                       </tr>
 
-                      {/* AI Appraisal Row */}
-                      <tr>
-                        <td className="px-6 py-4 font-bold text-gray-900 bg-gradient-to-r from-orange-50 to-yellow-50 border-r border-gray-300">
-                          <div className="flex items-center gap-2">
-                            <ShieldCheck size={16} className="text-orange-500" /> AI Appraisal
+                                            {/* AI Appraisal Row */}
+                                            <tr>
+                                                <td className="px-6 py-4 font-bold text-gray-900 bg-gradient-to-r from-orange-50 to-yellow-50 border-r border-gray-300">
+                                                    <div className="flex items-center gap-2">
+                                                        <ShieldCheck size={16} className="text-orange-500" /> AI Appraisal
                           </div>
                         </td>
                         {selectedProperties.map((prop) => {
@@ -624,12 +626,43 @@ const ComparisonPage = () => {
                                 </p>
                               )}
                             </td>
-                          );
-                        })}
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
+                                                    );
+                                                })}
+                                            </tr>
+
+                                            {/* Apply Row */}
+                                            <tr className="border-t border-gray-300">
+                                                <td className="px-6 py-4 font-bold text-gray-900 bg-slate-50 border-r border-gray-300">
+                                                    <div className="flex items-center gap-2">
+                                                        <Send size={16} className="text-blue-600" /> Apply
+                                                    </div>
+                                                </td>
+                                                {selectedProperties.map((prop) => {
+                                                    const isOwner = prop.owner?.email === user?.email;
+                                                    const canApply = prop.status === "active" && !isOwner;
+
+                                                    return (
+                                                        <td key={prop._id} className="px-6 py-4 text-center bg-slate-50 border-r border-gray-300 last:border-r-0">
+                                                            {canApply ? (
+                                                                <button
+                                                                    onClick={() => navigate(`/property-details/${prop._id}?apply=true`)}
+                                                                    className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md font-bold text-xs uppercase tracking-wider hover:bg-blue-700 transition-all"
+                                                                >
+                                                                    <Send size={14} />
+                                                                    {prop.listingType === "rent" ? "Apply to Rent" : "Apply to Buy"}
+                                                                </button>
+                                                            ) : (
+                                                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                                                    {isOwner ? "Your Property" : "Not Available"}
+                                                                </p>
+                                                            )}
+                                                        </td>
+                                                    );
+                                                })}
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
 
                 {/* Action Buttons */}
                 <div className="flex gap-3 flex-wrap">
@@ -640,22 +673,8 @@ const ComparisonPage = () => {
                     <Download size={18} /> Download Comparison
                   </button>
                   <button
-                    onClick={() => {
-                      const tableHTML = document.querySelector("table").outerHTML;
-                      const blob = new Blob([tableHTML], { type: "text/html" });
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement("a");
-                      a.href = url;
-                      a.download = "comparison.html";
-                      a.click();
-                    }}
-                    className="flex items-center gap-2 px-6 py-3 bg-purple-600 text-white font-bold rounded-lg hover:bg-purple-700 transition shadow-lg shadow-purple-100"
-                  >
-                    <Share2 size={18} /> Share
-                  </button>
-                  <button
                     onClick={clearAllProperties}
-                    className="flex items-center gap-2 px-6 py-3 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition shadow-lg shadow-red-100 ml-auto"
+                    className="flex items-center gap-2 px-6 py-3 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition shadow-lg shadow-red-100"
                   >
                     <X size={18} /> Clear All
                   </button>

@@ -58,7 +58,7 @@ const ApplicationModal = ({ isOpen, onClose, property }) => {
     };
 
     return (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[10050] flex items-center justify-center p-4">
             <div className="bg-white rounded-lg w-11/12 max-w-2xl mx-auto max-h-[90vh] overflow-y-auto shadow-2xl">
                 {/* Header */}
                 <div className="sticky top-0 bg-white border-b border-gray-100 p-6 flex items-center justify-between rounded-t-[2.5rem]">
@@ -168,4 +168,3 @@ const ApplicationModal = ({ isOpen, onClose, property }) => {
 };
 
 export default ApplicationModal;
-

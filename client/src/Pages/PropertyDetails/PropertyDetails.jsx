@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router';
+import { useParams, useNavigate, useLocation } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import useAxios from '../../Hooks/useAxios';
 import useAuth from '../../Hooks/useAuth';
@@ -24,6 +24,7 @@ import 'swiper/css/pagination';
 const PropertyDetails = ({ isAdminPreview = false }) => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const locationRoute = useLocation();
     // Get both axios instances
     const axiosPublic = useAxios();
     const axiosSecure = useAxiosSecure();
@@ -92,6 +93,24 @@ const PropertyDetails = ({ isAdminPreview = false }) => {
         const blockingStatuses = ["pending", "counter", "deal-in-progress", "completed"];
         return matchesProperty && blockingStatuses.includes(app.status);
     });
+
+    useEffect(() => {
+        const params = new URLSearchParams(locationRoute.search);
+        const shouldOpenApplication = params.get('apply') === 'true';
+
+        if (
+            shouldOpenApplication &&
+            property &&
+            user &&
+            !isAdminPreview &&
+            property?.status === 'active' &&
+            property?.owner?.email !== user?.email &&
+            !hasApplied
+        ) {
+            setIsApplicationModalOpen(true);
+            navigate(locationRoute.pathname, { replace: true });
+        }
+    }, [locationRoute.pathname, locationRoute.search, navigate, property, user, isAdminPreview, hasApplied]);
 
     // Fetch Nearby Places using Overpass API directly from frontend
     const { data: nearbyPlaces, isLoading: nearbyPlacesLoading } = useQuery({
