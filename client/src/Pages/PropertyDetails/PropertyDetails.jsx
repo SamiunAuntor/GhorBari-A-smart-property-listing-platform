@@ -347,6 +347,16 @@ out center;
         ].filter(Boolean).join(", ");
     }, [address, geoMaps]);
 
+    const appraisal = property?.aiAppraisal || null;
+    const appraisalFairPrice = Number(appraisal?.fairPrice) || 0;
+    const appraisalMinPrice = Number(appraisal?.minPrice) || 0;
+    const appraisalMaxPrice = Number(appraisal?.maxPrice) || 0;
+    const appraisalConfidence = appraisal?.confidence || "medium";
+    const appraisalSummary = appraisal?.summary || "AI appraisal is not available for this property yet.";
+    const appraisalReasoning = Array.isArray(appraisal?.reasoning) ? appraisal.reasoning : [];
+    const appraisalMarketPosition = appraisal?.marketPosition || "fairly-priced";
+    const hasAppraisal = appraisalFairPrice > 0;
+
     // Format Date: 3 December, 2025
     const formatDate = (dateString) => {
         if (!dateString) return "Joining Date N/A";
@@ -562,17 +572,58 @@ out center;
                         </div>
                     </div>
 
-                    <div className="bg-gradient-to-br from-[#f97316] to-[#fbbf24] p-9 rounded-lg shadow-xl text-white relative overflow-hidden">
-                        <Sparkles className="absolute -right-8 -top-8 opacity-20 rotate-12" size={160} />
+                    <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 p-9 rounded-lg shadow-xl text-white relative overflow-hidden border border-slate-700/80">
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(251,146,60,0.16),transparent_32%),radial-gradient(circle_at_bottom_left,rgba(56,189,248,0.14),transparent_34%)]" />
+                        <Sparkles className="absolute -right-8 -top-8 opacity-10 rotate-12 text-orange-200" size={160} />
                         <div className="relative z-10">
-                            <div className="flex items-center gap-2 mb-5">
-                                <ShieldCheck size={20} />
-                                <h3 className="font-black uppercase text-[10px] tracking-[0.2em]">AI Market Appraisal</h3>
+                            <div className="flex items-center justify-between gap-3 mb-5">
+                                <div className="flex items-center gap-2">
+                                    <div className="flex items-center justify-center w-9 h-9 rounded-md bg-white/8 border border-white/10">
+                                        <ShieldCheck size={18} className="text-orange-200" />
+                                    </div>
+                                    <h3 className="font-black uppercase text-[10px] tracking-[0.2em] text-slate-100">AI Market Appraisal</h3>
+                                </div>
+                                {hasAppraisal && (
+                                    <span className="px-2.5 py-1 rounded-full bg-emerald-400/10 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-200 border border-emerald-300/20">
+                                        {appraisalConfidence} Confidence
+                                    </span>
+                                )}
                             </div>
-                            <p className="text-4xl font-black mb-2">৳{price ? (price * 0.95).toLocaleString() : ''}</p>
-                            <p className="text-xs font-bold opacity-90 leading-relaxed max-w-[90%]">
-                                Based on thousands of listings in this area, our AI predicts a fair market value.
-                            </p>
+                            {hasAppraisal ? (
+                                <>
+                                    <p className="text-4xl font-black mb-2 text-white">{`৳${appraisalFairPrice.toLocaleString()}`}</p>
+                                    <p className="text-xs font-bold text-slate-300 uppercase tracking-[0.18em] mb-5">
+                                        Fair {listingType === 'rent' ? 'Monthly Rent' : 'Market Price'} in BDT
+                                    </p>
+                                    <div className="grid grid-cols-2 gap-3 mb-4">
+                                        <div className="rounded-md bg-white/6 backdrop-blur-sm p-3 border border-white/10">
+                                            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400 mb-1">Estimated Range</p>
+                                            <p className="text-sm font-bold text-slate-100">{`৳${appraisalMinPrice.toLocaleString()} - ৳${appraisalMaxPrice.toLocaleString()}`}</p>
+                                        </div>
+                                        <div className="rounded-md bg-white/6 backdrop-blur-sm p-3 border border-white/10">
+                                            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400 mb-1">Listed Price Status</p>
+                                            <p className="text-sm font-bold capitalize text-slate-100">{appraisalMarketPosition.replace('-', ' ')}</p>
+                                        </div>
+                                    </div>
+                                    <p className="text-sm font-semibold text-slate-200 leading-relaxed mb-4">
+                                        {appraisalSummary}
+                                    </p>
+                                    {appraisalReasoning.length > 0 && (
+                                        <div className="space-y-2">
+                                            {appraisalReasoning.map((reason, index) => (
+                                                <div key={index} className="flex items-start gap-2 text-xs font-semibold text-slate-200">
+                                                    <Check size={14} className="shrink-0 mt-0.5 text-emerald-300" />
+                                                    <span>{reason}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <p className="text-sm font-semibold text-slate-200 leading-relaxed max-w-[90%]">
+                                    {appraisalSummary}
+                                </p>
+                            )}
                         </div>
                     </div>
 

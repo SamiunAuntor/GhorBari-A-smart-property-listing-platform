@@ -1,6 +1,7 @@
 import { getDatabase } from "../config/db.js";
 
 import { ObjectId } from "mongodb";
+import { generatePropertyAppraisal } from "../services/propertyAppraisalService.js";
 
 export const postProperty = async (req, res) => {
 
@@ -62,6 +63,13 @@ export const postProperty = async (req, res) => {
             // For flat: roomCount and bathrooms
             property.roomCount = Number(data.roomCount);
             property.bathrooms = Number(data.bathrooms);
+        }
+
+        try {
+            property.aiAppraisal = await generatePropertyAppraisal(property);
+        } catch (appraisalError) {
+            console.error("Property appraisal generation failed during property creation:", appraisalError.message);
+            property.aiAppraisal = null;
         }
 
         // Insert directly into the "properties" collection
@@ -235,6 +243,19 @@ export const updateProperty = async (req, res) => {
             // For flat: roomCount and bathrooms
             updateData.roomCount = Number(data.roomCount);
             updateData.bathrooms = Number(data.bathrooms);
+        }
+
+        try {
+            updateData.aiAppraisal = await generatePropertyAppraisal({
+                ...existingProperty,
+                ...updateData,
+                propertyType,
+                listingType: existingProperty.listingType,
+                address: existingProperty.address
+            });
+        } catch (appraisalError) {
+            console.error("Property appraisal generation failed during property update:", appraisalError.message);
+            updateData.aiAppraisal = existingProperty.aiAppraisal || null;
         }
 
         const result = await db.collection("properties").updateOne(
