@@ -18,7 +18,6 @@ import {
     ChevronsRight,
     Home,
     Handshake,
-    Clock,
     RotateCcw
 } from 'lucide-react';
 import Loading from '../../Components/Loading';
@@ -227,20 +226,20 @@ const AllPropertyListings = () => {
             </div>
 
             {/* TABLE */}
-            <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400">
-                <table className="min-w-full text-center table-auto border-collapse" style={{ minWidth: '1400px' }}>
+            <div className="overflow-x-auto overflow-y-hidden">
+                <table className={`w-full ${paginatedProperties.length > 0 ? "min-w-[1120px]" : ""} text-center table-auto border-collapse`}>
                     {paginatedProperties.length > 0 && (
                         <thead className="bg-[#f8f9fa]">
-                            <tr className="text-[11px] uppercase text-[#344767] font-black tracking-widest border-b border-gray-200">
-                                <th className="px-4 py-4 text-left border-r border-gray-200 whitespace-nowrap min-w-[200px]">Property Title</th>
-                                <th className="px-4 py-4 border-r border-gray-200 whitespace-nowrap min-w-[180px]">Owner Contact</th>
-                                <th className="px-4 py-4 border-r border-gray-200 whitespace-nowrap min-w-[100px]">Mode</th>
-                                <th className="px-4 py-4 border-r border-gray-200 whitespace-nowrap min-w-[120px]">Category</th>
-                                <th className="px-4 py-4 border-r border-gray-200 whitespace-nowrap min-w-[150px]">Price Structure</th>
-                                <th className="px-4 py-4 border-r border-gray-200 whitespace-nowrap min-w-[140px]">Specifications</th>
-                                <th className="px-4 py-4 border-r border-gray-200 whitespace-nowrap min-w-[100px]">Size</th>
-                                <th className="px-4 py-4 border-r border-gray-200 whitespace-nowrap min-w-[140px]">Status</th>
-                                <th className="px-4 py-4 whitespace-nowrap min-w-[300px]">Administrative Actions</th>
+                            <tr className="text-[10px] uppercase text-[#344767] font-black tracking-wider border-b border-gray-200">
+                                <th className="px-3 py-3 text-left border-r border-gray-200 min-w-[180px]">Property Title</th>
+                                <th className="px-3 py-3 text-left border-r border-gray-200 min-w-[190px]">Owner</th>
+                                <th className="px-3 py-3 border-r border-gray-200 whitespace-nowrap min-w-[88px]">Mode</th>
+                                <th className="px-3 py-3 border-r border-gray-200 whitespace-nowrap min-w-[96px]">Category</th>
+                                <th className="px-3 py-3 border-r border-gray-200 whitespace-nowrap min-w-[120px]">Price Structure</th>
+                                <th className="px-3 py-3 border-r border-gray-200 min-w-[140px]">Specifications</th>
+                                <th className="px-3 py-3 border-r border-gray-200 whitespace-nowrap min-w-[82px]">Size</th>
+                                <th className="px-3 py-3 border-r border-gray-200 whitespace-nowrap min-w-[120px]">Status</th>
+                                <th className="px-3 py-3 whitespace-nowrap min-w-[220px]">Administrative Actions</th>
                             </tr>
                         </thead>
                     )}
@@ -262,131 +261,129 @@ const AllPropertyListings = () => {
                         ) : (
                             paginatedProperties.map(prop => (
                                 <tr key={prop._id} className="hover:bg-gray-50/80 transition-colors group">
-                                    <td className="px-4 py-5 text-left border-r border-gray-200 bg-white group-hover:bg-gray-50/80 whitespace-nowrap">
-                                        <span className="font-bold text-sm text-[#344767] leading-snug">{prop.title}</span>
+                                    <td className="px-3 py-3 text-left border-r border-gray-200 bg-white group-hover:bg-gray-50/80">
+                                        <span className="font-bold text-[13px] text-[#344767] leading-snug break-words">{prop.title}</span>
                                     </td>
-                                    <td className="px-4 py-5 text-sm font-medium text-[#67748e] border-r border-gray-200 whitespace-nowrap">
-                                        {prop.owner?.email}
+                                                                        <td className="px-3 py-3 text-left border-r border-gray-200">
+                                        <button
+                                            onClick={() => navigate(`/owner-profile/${prop.owner?.email}`)}
+                                            className="w-full text-left hover:bg-gray-50 rounded-lg p-1.5 transition-all cursor-pointer"
+                                            title="View Owner Public Profile"
+                                        >
+                                            <div className="flex flex-col min-w-0">
+                                                <span className="font-bold text-[12px] text-[#344767] leading-snug truncate">{prop.owner?.name || "Owner"}</span>
+                                                <span className="text-[10px] text-[#67748e] font-medium break-all leading-tight">{prop.owner?.email || "N/A"}</span>
+                                                <span className="text-[10px] text-[#67748e] font-medium leading-tight mt-0.5">{prop.owner?.phone || "No phone added"}</span>
+                                            </div>
+                                        </button>
                                     </td>
-                                    <td className="px-4 py-5 border-r border-gray-200 whitespace-nowrap">
-                                        <span className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-tighter ${
+                                    <td className="px-3 py-3 border-r border-gray-200 whitespace-nowrap">
+                                        <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-tight ${
                                             prop.listingType === 'rent' ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-blue-600'
                                         }`}>
                                             {prop.listingType}
                                         </span>
                                     </td>
-                                    <td className="px-4 py-5 text-sm font-bold uppercase text-[#67748e] border-r border-gray-200 whitespace-nowrap">
+                                    <td className="px-3 py-3 text-[11px] font-bold uppercase text-[#67748e] border-r border-gray-200 whitespace-nowrap">
                                         {prop.propertyType}
                                     </td>
-                                    <td className="px-4 py-5 text-sm font-black text-[#344767] border-r border-gray-200 whitespace-nowrap">
-                                        ৳{prop.price?.toLocaleString()}
-                                        <span className="text-[10px] font-bold text-gray-400 block uppercase">
+                                    <td className="px-3 py-3 text-sm font-black text-[#344767] border-r border-gray-200 whitespace-nowrap">
+                                        {`৳${prop.price?.toLocaleString()}`}
+                                        <span className="text-[9px] font-bold text-gray-400 block uppercase tracking-tight">
                                             {prop.listingType === 'rent' ? 'Per Month' : 'Asking Price'}
                                         </span>
                                     </td>
-                                    <td className="px-4 py-5 text-sm font-bold text-[#67748e] border-r border-gray-200 whitespace-nowrap">
-                                        {prop.propertyType === 'building' 
+                                    <td className="px-3 py-3 text-[11px] font-bold text-[#67748e] border-r border-gray-200 leading-tight">
+                                        {prop.propertyType === 'building'
                                             ? `${prop.floorCount || prop.unitCount || 'N/A'} Floors, ${prop.totalUnits || 'N/A'} Units`
-                                            : `${prop.roomCount || prop.unitCount || 'N/A'} Rooms, ${prop.bathrooms || 'N/A'} Baths`
-                                        }
+                                            : `${prop.roomCount || prop.unitCount || 'N/A'} Rooms, ${prop.bathrooms || 'N/A'} Baths`}
                                     </td>
-                                    <td className="px-4 py-5 text-sm font-medium text-[#67748e] border-r border-gray-200 whitespace-nowrap">
-                                        {prop.areaSqFt} <span className="text-[10px] font-bold">SQFT</span>
+                                    <td className="px-3 py-3 text-[11px] font-medium text-[#67748e] border-r border-gray-200 whitespace-nowrap">
+                                        {prop.areaSqFt} <span className="text-[9px] font-bold">SQFT</span>
                                     </td>
-                                    <td className="px-4 py-5 border-r border-gray-200 whitespace-nowrap">
-                                        <span className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-tighter border-2 ${getPropertyStatusColorAdmin(prop.status)}`}>
+                                    <td className="px-3 py-3 border-r border-gray-200 whitespace-nowrap">
+                                        <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-tight border ${getPropertyStatusColorAdmin(prop.status)}`}>
                                             {getPropertyStatusDisplay(prop.status)}
                                         </span>
                                     </td>
-                                    <td className="px-4 py-5 whitespace-nowrap">
-                                        <div className="flex items-center justify-center gap-2">
-                                            {/* Approve - only for pending/rejected */}
+                                    <td className="px-3 py-3 whitespace-nowrap">
+                                        <div className="flex items-center justify-center gap-1.5 flex-wrap">
                                             {canApprove(prop.status) && (
-                                                <button 
-                                                    onClick={() => handleAction(prop._id, 'active', prop.status)} 
-                                                    className="w-9 h-9 flex items-center justify-center text-emerald-500 bg-emerald-50 hover:bg-emerald-100 rounded-xl transition-all" 
+                                                <button
+                                                    onClick={() => handleAction(prop._id, 'active', prop.status)}
+                                                    className="w-8 h-8 flex items-center justify-center text-emerald-500 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-all"
                                                     title="Approve Property"
                                                 >
-                                                    <CheckCircle size={18} />
+                                                    <CheckCircle size={16} />
                                                 </button>
                                             )}
 
-                                            {/* Details - always available */}
-                                            <button 
-                                                onClick={() => navigate(`/admin-dashboard/property-details/${prop._id}`)} 
-                                                className="w-9 h-9 flex items-center justify-center text-blue-500 bg-blue-50 hover:bg-blue-100 rounded-xl transition-all" 
+                                            <button
+                                                onClick={() => navigate(`/admin-dashboard/property-details/${prop._id}`)}
+                                                className="w-8 h-8 flex items-center justify-center text-blue-500 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all"
                                                 title="View Details"
                                             >
-                                                <ExternalLink size={18} />
+                                                <ExternalLink size={16} />
                                             </button>
 
-                                            {/* Reject - only for pending properties */}
                                             {canReject(prop.status) && (
-                                                <button 
-                                                    onClick={() => handleAction(prop._id, 'rejected', prop.status)} 
-                                                    className="w-9 h-9 flex items-center justify-center text-amber-500 bg-amber-50 hover:bg-amber-100 rounded-xl transition-all" 
+                                                <button
+                                                    onClick={() => handleAction(prop._id, 'rejected', prop.status)}
+                                                    className="w-8 h-8 flex items-center justify-center text-amber-500 bg-amber-50 hover:bg-amber-100 rounded-lg transition-all"
                                                     title="Reject Property"
                                                 >
-                                                    <XCircle size={18} />
+                                                    <XCircle size={16} />
                                                 </button>
                                             )}
 
-                                            {/* Delist - only for active properties (remove from marketplace) */}
                                             {canDelist(prop.status) && (
-                                                <button 
-                                                    onClick={() => handleAction(prop._id, 'rejected', prop.status)} 
-                                                    className="w-9 h-9 flex items-center justify-center text-amber-500 bg-amber-50 hover:bg-amber-100 rounded-xl transition-all" 
+                                                <button
+                                                    onClick={() => handleAction(prop._id, 'rejected', prop.status)}
+                                                    className="w-8 h-8 flex items-center justify-center text-amber-500 bg-amber-50 hover:bg-amber-100 rounded-lg transition-all"
                                                     title="Delist Property (Remove from Marketplace)"
                                                 >
-                                                    <XCircle size={18} />
+                                                    <XCircle size={16} />
                                                 </button>
                                             )}
 
-                                            {/* Mark as Rented - only for rent listings in deal-in-progress (has assigned seeker) */}
                                             {canMarkRented(prop) && (
-                                                <button 
-                                                    onClick={() => handleAction(prop._id, 'rented', prop.status)} 
-                                                    className="w-9 h-9 flex items-center justify-center text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl transition-all" 
+                                                <button
+                                                    onClick={() => handleAction(prop._id, 'rented', prop.status)}
+                                                    className="w-8 h-8 flex items-center justify-center text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all"
                                                     title="Mark as Rented"
                                                 >
-                                                    <Home size={18} />
+                                                    <Home size={16} />
                                                 </button>
                                             )}
 
-                                            {/* Mark as Sold - only for sale listings in deal-in-progress (has assigned seeker) */}
                                             {canMarkSold(prop) && (
-                                                <button 
-                                                    onClick={() => handleAction(prop._id, 'sold', prop.status)} 
-                                                    className="w-9 h-9 flex items-center justify-center text-purple-600 bg-purple-50 hover:bg-purple-100 rounded-xl transition-all" 
+                                                <button
+                                                    onClick={() => handleAction(prop._id, 'sold', prop.status)}
+                                                    className="w-8 h-8 flex items-center justify-center text-purple-600 bg-purple-50 hover:bg-purple-100 rounded-lg transition-all"
                                                     title="Mark as Sold"
                                                 >
-                                                    <Handshake size={18} />
+                                                    <Handshake size={16} />
                                                 </button>
                                             )}
 
-                                            {/* Deal in Progress - REMOVED: Admin cannot set this status */}
-                                            {/* Only owner/user accepting an application can set deal-in-progress */}
-
-                                            {/* Cancel Deal - only for deal-in-progress */}
                                             {canMarkDealCancelled(prop.status) && (
-                                                <button 
-                                                    onClick={() => handleAction(prop._id, 'deal-cancelled', prop.status)} 
-                                                    className="w-9 h-9 flex items-center justify-center text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-xl transition-all" 
+                                                <button
+                                                    onClick={() => handleAction(prop._id, 'deal-cancelled', prop.status)}
+                                                    className="w-8 h-8 flex items-center justify-center text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg transition-all"
                                                     title="Cancel Deal (Restore Previous Status)"
                                                 >
-                                                    <RotateCcw size={18} />
+                                                    <RotateCcw size={16} />
                                                 </button>
                                             )}
 
-                                            <div className="w-[1px] h-6 bg-gray-200 mx-1"></div>
+                                            <div className="w-[1px] h-5 bg-gray-200 mx-0.5"></div>
 
-                                            {/* Hard Delete - always available */}
-                                            <button 
-                                                onClick={() => handleDelete(prop._id)} 
-                                                className="w-9 h-9 flex items-center justify-center text-red-500 bg-red-50 hover:bg-red-100 rounded-xl transition-all" 
+                                            <button
+                                                onClick={() => handleDelete(prop._id)}
+                                                className="w-8 h-8 flex items-center justify-center text-red-500 bg-red-50 hover:bg-red-100 rounded-lg transition-all"
                                                 title="Hard Delete"
                                             >
-                                                <Trash2 size={18} />
+                                                <Trash2 size={16} />
                                             </button>
                                         </div>
                                     </td>

@@ -3,6 +3,8 @@ import { connectDatabase } from "./src/config/db.js";
 import { initializeSocket } from "./src/config/socket.js";
 import { setupSocketEvents } from "./src/events/chatEvents.js";
 import { startEmailJobCron } from "./src/jobs/emailJobCron.js";
+import { startNidVerificationCron } from "./src/jobs/nidVerificationCron.js";
+
 import http from "http";
 
 
@@ -34,7 +36,8 @@ async function startServer() {
             startEmailJobCron();
         }
 
-        // Start listening on port
+        startNidVerificationCron();
+
         httpServer.listen(PORT, () => {
 
             console.log(`🏠 GhorBari server is running at http://localhost:${PORT}`);

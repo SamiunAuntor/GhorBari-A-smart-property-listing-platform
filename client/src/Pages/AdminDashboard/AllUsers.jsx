@@ -1,11 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router';
 import useAxiosSecure from '../../Hooks/useAxiosSecure';
 import Swal from 'sweetalert2';
-import { Eye, ShieldCheck, Users, Inbox, Trash2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Search } from 'lucide-react';
+import { Eye, ShieldCheck, Users, Inbox, Trash2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Search, Star, ExternalLink } from 'lucide-react';
 import Loading from '../../Components/Loading';
 
 const AllUsers = () => {
+    const navigate = useNavigate();
     const axiosSecure = useAxiosSecure();
     const queryClient = useQueryClient();
     const [filter, setFilter] = useState('all'); // all, verified, pending, unverified, rejected
@@ -134,7 +136,7 @@ const AllUsers = () => {
     if (isLoading) return <Loading />;
 
     return (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             {/* HEADER */}
             <div className="p-6 border-b border-gray-200 bg-white">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -182,19 +184,19 @@ const AllUsers = () => {
             </div>
 
             {/* TABLE */}
-            <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400">
-                <table className="min-w-full text-center table-auto border-collapse" style={{ minWidth: '1200px' }}>
+            <div className="overflow-x-auto overflow-y-hidden">
+                <table className={`w-full ${paginatedUsers.length > 0 ? "min-w-[1120px]" : ""} text-center table-auto border-collapse`}>
                     {paginatedUsers.length > 0 && (
                         <thead className="bg-[#f8f9fa]">
                             <tr className="text-[11px] uppercase text-[#344767] font-black tracking-widest border-b border-gray-200">
-                                <th className="px-4 py-4 text-left border-r border-gray-200 whitespace-nowrap min-w-[200px]">User Identity</th>
-                                <th className="px-4 py-4 border-r border-gray-200 whitespace-nowrap min-w-[150px]">Contact Number</th>
-                                <th className="px-4 py-4 border-r border-gray-200 whitespace-nowrap min-w-[120px]">Role</th>
-                                <th className="px-4 py-4 border-r border-gray-200 whitespace-nowrap min-w-[130px]">Total Properties</th>
-                                <th className="px-4 py-4 border-r border-gray-200 whitespace-nowrap min-w-[160px]">Registration Date</th>
-                                <th className="px-4 py-4 border-r border-gray-200 whitespace-nowrap min-w-[150px]">NID Documents</th>
-                                <th className="px-4 py-4 border-r border-gray-200 whitespace-nowrap min-w-[180px]">Verification Status</th>
-                                <th className="px-4 py-4 whitespace-nowrap min-w-[100px]">Actions</th>
+                                <th className="px-3 py-3 text-left border-r border-gray-200 min-w-[260px]">User Identity</th>
+                                <th className="px-3 py-3 border-r border-gray-200 whitespace-nowrap min-w-[100px]">Role</th>
+                                <th className="px-3 py-3 border-r border-gray-200 whitespace-nowrap min-w-[88px]">Rating</th>
+                                <th className="px-3 py-3 border-r border-gray-200 whitespace-nowrap min-w-[90px]">Properties</th>
+                                <th className="px-3 py-3 border-r border-gray-200 whitespace-nowrap min-w-[140px]">Registration Date</th>
+                                <th className="px-3 py-3 border-r border-gray-200 whitespace-nowrap min-w-[120px]">NID Documents</th>
+                                <th className="px-3 py-3 border-r border-gray-200 whitespace-nowrap min-w-[150px]">Verification Status</th>
+                                <th className="px-3 py-3 whitespace-nowrap min-w-[74px]">Actions</th>
                             </tr>
                         </thead>
                     )}
@@ -216,35 +218,49 @@ const AllUsers = () => {
                         ) : (
                             paginatedUsers.map(user => (
                                 <tr key={user._id} className="hover:bg-gray-50/80 transition-colors group">
-                                    <td className="px-4 py-5 text-left border-r border-gray-200 bg-white group-hover:bg-gray-50/80 whitespace-nowrap">
-                                        <div className="flex items-center gap-3">
+                                    <td className="px-3 py-3 text-left border-r border-gray-200 bg-white group-hover:bg-gray-50/80">
+                                        <div className="flex items-center gap-2.5 min-w-0">
                                             <img 
                                                 src={user.profileImage || 'https://via.placeholder.com/40'} 
-                                                className="w-10 h-10 rounded-full object-cover border border-gray-100 shrink-0" 
+                                                className="w-9 h-9 rounded-full object-cover border border-gray-100 shrink-0" 
                                                 alt="" 
                                             />
                                             <div className="flex flex-col min-w-0">
-                                                <span className="font-bold text-sm text-[#344767] leading-snug truncate">{user.name || 'N/A'}</span>
-                                                <span className="text-[11px] text-[#67748e] font-medium truncate">{user.email || 'N/A'}</span>
+                                                <span className="font-bold text-[13px] text-[#344767] leading-snug truncate">{user.name || 'N/A'}</span>
+                                                <span className="text-[10px] text-[#67748e] font-medium break-all leading-tight">{user.email || 'N/A'}</span>
+                                                <span className="text-[10px] text-[#94a3b8] font-semibold leading-tight mt-0.5">
+                                                    {user.phone || 'Phone not added'}
+                                                </span>
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="px-4 py-5 text-sm font-medium text-[#67748e] border-r border-gray-200 whitespace-nowrap">
-                                        {user.phone || 'N/A'}
-                                    </td>
-                                    <td className="px-4 py-5 border-r border-gray-200 whitespace-nowrap">
-                                        <span className="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-tighter bg-gray-100 text-[#344767]">
+                                    <td className="px-3 py-3 border-r border-gray-200 whitespace-nowrap">
+                                        <span
+                                            className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-tight ${
+                                                (user.role || 'user') === 'admin'
+                                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                                    : 'bg-gray-100 text-[#344767]'
+                                            }`}
+                                        >
                                             {user.role || 'user'}
                                         </span>
                                     </td>
-                                    <td className="px-4 py-5 text-sm font-bold text-[#344767] border-r border-gray-200 whitespace-nowrap">
+                                    <td className="px-3 py-3 border-r border-gray-200 whitespace-nowrap">
+                                        <div className="flex items-center justify-center gap-1">
+                                            <Star size={12} className="text-amber-500" fill="currentColor" />
+                                            <span className="text-[11px] font-bold text-[#344767]">
+                                                {Number(user?.rating?.average ?? user?.rating ?? 0).toFixed(1)}
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td className="px-3 py-3 text-sm font-bold text-[#344767] border-r border-gray-200 whitespace-nowrap">
                                         {user.totalProperties || 0}
                                     </td>
-                                    <td className="px-4 py-5 text-sm font-medium text-[#67748e] border-r border-gray-200 whitespace-nowrap">
+                                    <td className="px-3 py-3 text-xs font-medium text-[#67748e] border-r border-gray-200 whitespace-nowrap">
                                         {user.createdAt ? (
                                             <div className="flex flex-col items-center">
                                                 <span>{new Date(user.createdAt).toLocaleDateString()}</span>
-                                                <span className="text-[10px] text-gray-400 font-bold uppercase">
+                                                <span className="text-[9px] text-gray-400 font-bold uppercase">
                                                     {new Date(user.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                 </span>
                                             </div>
@@ -252,20 +268,20 @@ const AllUsers = () => {
                                             <span className="text-gray-400">N/A</span>
                                         )}
                                     </td>
-                                    <td className="px-4 py-5 border-r border-gray-200 whitespace-nowrap">
+                                    <td className="px-3 py-3 border-r border-gray-200 whitespace-nowrap">
                                         {user.nidImages && user.nidImages.length > 0 ? (
                                             <button
                                                 onClick={() => showNidInfo(user.nidImages)}
-                                                className="mx-auto w-fit px-4 py-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-all flex items-center gap-2 border border-blue-100 shadow-sm"
+                                                className="mx-auto w-fit px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-all flex items-center gap-1.5 border border-blue-100 shadow-sm"
                                             >
-                                                <Eye size={16} />
-                                                <span className="text-[10px] font-black uppercase tracking-widest">View NID</span>
+                                                <Eye size={14} />
+                                                <span className="text-[9px] font-black uppercase tracking-wider">View NID</span>
                                             </button>
                                         ) : (
-                                            <span className="text-gray-400 text-xs font-medium">Not Submitted</span>
+                                            <span className="text-gray-400 text-[11px] font-medium">Not Submitted</span>
                                         )}
                                     </td>
-                                    <td className="px-4 py-5 border-r border-gray-200 whitespace-nowrap">
+                                    <td className="px-3 py-3 border-r border-gray-200 whitespace-nowrap">
                                         <div className="flex items-center justify-center">
                                             {(() => {
                                                 const status = user.nidVerified || 'unverified';
@@ -273,7 +289,7 @@ const AllUsers = () => {
                                                     return (
                                                         <button
                                                             onClick={() => handleVerify(user)}
-                                                            className="text-[11px] font-black uppercase border-2 rounded-xl px-3 py-1.5 outline-none cursor-pointer transition-all border-emerald-100 text-emerald-600 bg-emerald-50 hover:bg-emerald-100"
+                                                            className="text-[10px] font-black uppercase border rounded-lg px-2.5 py-1.5 outline-none cursor-pointer transition-all border-blue-100 text-blue-600 bg-blue-50 hover:bg-blue-100"
                                                         >
                                                             Verify User
                                                         </button>
@@ -288,21 +304,30 @@ const AllUsers = () => {
                                                             : 'border-amber-100 text-amber-600 bg-amber-50';
 
                                                 return (
-                                                    <span className={`text-[11px] font-black uppercase border-2 rounded-xl px-3 py-1.5 ${statusClass}`}>
+                                                    <span className={`text-[10px] font-black uppercase border rounded-lg px-2.5 py-1.5 ${statusClass}`}>
                                                         {status}
                                                     </span>
                                                 );
                                             })()}
                                         </div>
                                     </td>
-                                    <td className="px-4 py-5 whitespace-nowrap">
-                                        <button
-                                            onClick={() => handleDelete(user)}
-                                            className="w-9 h-9 flex items-center justify-center text-red-500 bg-red-50 hover:bg-red-100 rounded-xl transition-all"
-                                            title="Delete User"
-                                        >
-                                            <Trash2 size={18} />
-                                        </button>
+                                    <td className="px-3 py-3 whitespace-nowrap">
+                                        <div className="flex items-center justify-center gap-2">
+                                            <button
+                                                onClick={() => navigate(`/owner-profile/${user.email}`)}
+                                                className="w-8 h-8 flex items-center justify-center text-blue-500 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all"
+                                                title="View Public Profile"
+                                            >
+                                                <ExternalLink size={16} />
+                                            </button>
+                                            <button
+                                                onClick={() => handleDelete(user)}
+                                                className="w-8 h-8 flex items-center justify-center text-red-500 bg-red-50 hover:bg-red-100 rounded-lg transition-all"
+                                                title="Delete User"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))
