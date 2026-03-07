@@ -255,7 +255,65 @@ export const checkIsAdmin = async (req, res) => {
     }
 
 };
+
+export const getPublicProfileMessageStatus = async (req, res) => {
 
+    try {
+
+        const db = getDatabase();
+        const currentUserEmail = req.user?.email;
+        const targetEmail = req.params.email;
+
+        if (!currentUserEmail) {
+            return res.status(401).send({ message: "Unauthorized" });
+        }
+
+        if (!targetEmail) {
+            return res.status(400).send({ message: "Target email is required" });
+        }
+
+        if (currentUserEmail === targetEmail) {
+            return res.send({
+                canMessage: false,
+                message: "You cannot message your own profile from here."
+            });
+        }
+
+        const activeDeal = await db.collection("applications")
+            .find({
+                status: "deal-in-progress",
+                $or: [
+                    { "owner.email": currentUserEmail, "seeker.email": targetEmail },
+                    { "owner.email": targetEmail, "seeker.email": currentUserEmail }
+                ]
+            })
+            .sort({ updatedAt: -1, createdAt: -1 })
+            .limit(1)
+            .toArray();
+
+        const application = activeDeal[0];
+
+        if (!application) {
+            return res.send({
+                canMessage: false,
+                message: "Messaging is available after one of your deals goes in progress with this user."
+            });
+        }
+
+        return res.send({
+            canMessage: true,
+            message: "You can message this user now.",
+            applicationId: application._id?.toString(),
+            propertyId: application.propertyId?.toString?.() || application.propertyId || null
+        });
+
+    } catch (error) {
+
+        res.status(500).send({ message: "Server error" });
+
+    }
+
+};
 export const getPublicProfile = async (req, res) => {
 
     try {
