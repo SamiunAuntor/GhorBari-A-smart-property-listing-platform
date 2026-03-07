@@ -62,7 +62,7 @@ const RegisterPage = () => {
             showToast(`Welcome, ${data.fullName}! 🎉`, "success");
 
         } catch (error) {
-            showToast(error.response?.data?.message || error.message || "Registration failed", "error");
+            showToast(getFirebaseAuthErrorMessage(error, "Registration failed"), "error");
         } finally {
             setLoading(false);
         }
@@ -117,10 +117,7 @@ const RegisterPage = () => {
             showToast(`Welcome, ${user.displayName || "User"}! 🚀`, "success");
 
         } catch (error) {
-            showToast(
-                error.response?.data?.message || error.message || "Google sign-in failed",
-                "error"
-            );
+            showToast(getFirebaseAuthErrorMessage(error, "Google sign-in failed"), "error");
         } finally {
             setLoading(false);
         }

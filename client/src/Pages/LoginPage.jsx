@@ -6,6 +6,7 @@ import { useNavigate, Link, useLocation } from "react-router";
 import loginImg from "../assets/loginImage.jpg";
 import Loading from "../Components/Loading";
 import { showToast } from "../Utilities/ToastMessage";
+import { getFirebaseAuthErrorMessage } from "../Utilities/firebaseAuthErrorMessage";
 import useAuth from "../Hooks/useAuth";
 import useAxios from "../Hooks/useAxios";
 import useAdmin from "../Hooks/useAdmin";
@@ -60,7 +61,7 @@ const LoginPage = () => {
                 navigate(location?.state?.from || "/");
             }
         } catch (error) {
-            showToast(error.message || "Invalid email or password", "error");
+            showToast(getFirebaseAuthErrorMessage(error, "Invalid email or password"), "error");
         } finally {
             setActionLoading(false);
         }
@@ -132,10 +133,7 @@ const LoginPage = () => {
             }
 
         } catch (error) {
-            showToast(
-                error.response?.data?.message || error.message || "Google sign-in failed",
-                "error"
-            );
+            showToast(getFirebaseAuthErrorMessage(error, "Google sign-in failed"), "error");
         } finally {
             setActionLoading(false);
         }
