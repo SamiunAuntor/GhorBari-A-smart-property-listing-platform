@@ -119,8 +119,8 @@ export default function MessageInput({
     };
 
     return (
-        <form onSubmit={handleSendMessage} className="p-4 border-t border-gray-100 bg-white">
-            <div className="flex gap-3 items-end">
+        <form onSubmit={handleSendMessage} className="p-3 sm:p-4 border-t border-gray-100 bg-white">
+            <div className="flex gap-2 sm:gap-3 items-end">
                 <textarea
                     ref={textareaRef}
                     value={message}
@@ -129,7 +129,7 @@ export default function MessageInput({
                     placeholder="Type a message..."
                     disabled={disabled}
                     rows="1"
-                    className="flex-1 resize-none border border-gray-200 rounded-2xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:bg-gray-100 disabled:cursor-not-allowed max-h-32"
+                    className="flex-1 resize-none overflow-hidden border border-gray-200 rounded-2xl px-3 sm:px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:bg-gray-100 disabled:cursor-not-allowed max-h-32"
                 />
 
                 <input
@@ -165,7 +165,7 @@ export default function MessageInput({
                     <button
                         type="submit"
                         disabled={(!message.trim() && attachments.length === 0) || disabled || isUploading} // Added isUploading check
-                        className="bg-orange-500 hover:bg-orange-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-2xl px-5 py-2 text-sm font-semibold transition-colors flex-shrink-0"
+                        className="bg-orange-500 hover:bg-orange-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-2xl px-4 sm:px-5 py-2 text-sm font-semibold transition-colors flex-shrink-0"
                     >
                         Send
                     </button>

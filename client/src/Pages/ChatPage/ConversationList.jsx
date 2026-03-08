@@ -37,7 +37,7 @@ export default function ConversationList({
     }
 
     return (
-        <div className="h-full flex flex-col bg-gray-50">
+        <div className="h-full min-h-0 min-w-0 flex flex-col bg-gray-50 overflow-x-hidden">
             {/* Search Header */}
             <div className="p-3 border-b border-gray-100 bg-gray-50">
                 <input
@@ -50,12 +50,12 @@ export default function ConversationList({
             </div>
 
             {/* Conversations List */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
                 {filteredConversations.map((conversation) => (
                     <div
                         key={conversation._id}
                         onClick={() => handleSelectConversation(conversation)}
-                        className={`px-3 py-3 border-b border-gray-100 cursor-pointer transition-all hover:bg-white ${
+                        className={`px-3 py-3 border-b border-gray-100 cursor-pointer transition-all hover:bg-white overflow-hidden ${
                             selectedConversationId === conversation._id
                                 ? 'bg-white border-l-4 border-l-orange-500'
                                 : ''
