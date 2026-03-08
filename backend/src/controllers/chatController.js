@@ -334,8 +334,12 @@ export const deleteConversation = async (req, res) => {
         }
 
         // Delete all messages in the conversation
+        const conversationObjectId = new ObjectId(conversationId);
         await db.collection("messages").deleteMany({
-            conversationId
+            $or: [
+                { conversationId: conversationObjectId },
+                { conversationId }
+            ]
         });
 
         // Delete conversation

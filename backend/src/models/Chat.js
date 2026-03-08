@@ -1,10 +1,23 @@
 import { ObjectId } from "mongodb";
 
+export function buildParticipantPairKey(email1, email2) {
+    return [email1, email2]
+        .map((email) => email?.trim().toLowerCase())
+        .sort((a, b) => a.localeCompare(b))
+        .join("::");
+}
+
 export class ConversationModel {
     static async create(db, conversationData) {
+        const participantPairKey = buildParticipantPairKey(
+            conversationData.participant1Email,
+            conversationData.participant2Email
+        );
+
         const result = await db.collection("conversations").insertOne({
             participant1Email: conversationData.participant1Email,
             participant2Email: conversationData.participant2Email,
+            participantPairKey,
             propertyId: conversationData.propertyId || null,
             lastMessage: null,
             lastMessageTime: null,
@@ -23,23 +36,15 @@ export class ConversationModel {
     }
 
     static async findByParticipants(db, email1, email2) {
+        const participantPairKey = buildParticipantPairKey(email1, email2);
+
         return await db.collection("conversations").findOne({
-            $or: [
-                { participant1Email: email1, participant2Email: email2 },
-                { participant1Email: email2, participant2Email: email1 }
-            ]
+            participantPairKey
         });
     }
 
     static async findByParticipantsAndProperty(db, email1, email2, propertyId) {
-        if (!propertyId) return this.findByParticipants(db, email1, email2);
-        const propId = typeof propertyId === 'string' ? new ObjectId(propertyId) : propertyId;
-        return await db.collection("conversations").findOne({
-            $or: [
-                { participant1Email: email1, participant2Email: email2, propertyId: propId },
-                { participant1Email: email2, participant2Email: email1, propertyId: propId }
-            ]
-        });
+        return this.findByParticipants(db, email1, email2);
     }
 
     static async findByUserEmail(db, userEmail) {
@@ -77,21 +82,36 @@ export class ConversationModel {
     }
 
     static async findOrCreate(db, email1, email2, propertyId = null) {
-        const finder = propertyId
-            ? () => this.findByParticipantsAndProperty(db, email1, email2, propertyId)
-            : () => this.findByParticipants(db, email1, email2);
-        let conversation = await finder();
+        const participantPairKey = buildParticipantPairKey(email1, email2);
+        const normalizedPropertyId = propertyId
+            ? (typeof propertyId === "string" ? new ObjectId(propertyId) : propertyId)
+            : null;
 
-        if (!conversation) {
-            const convId = await this.create(db, {
-                participant1Email: email1,
-                participant2Email: email2,
-                propertyId: propertyId ? (typeof propertyId === 'string' ? new ObjectId(propertyId) : propertyId) : null
-            });
-            conversation = await this.findById(db, convId);
+        try {
+            await db.collection("conversations").updateOne(
+                { participantPairKey },
+                {
+                    $setOnInsert: {
+                        participant1Email: email1,
+                        participant2Email: email2,
+                        participantPairKey,
+                        propertyId: normalizedPropertyId,
+                        lastMessage: null,
+                        lastMessageTime: null,
+                        lastMessageSender: null,
+                        createdAt: new Date(),
+                        updatedAt: new Date()
+                    }
+                },
+                { upsert: true }
+            );
+        } catch (error) {
+            if (error?.code !== 11000) {
+                throw error;
+            }
         }
 
-        return conversation;
+        return this.findByParticipants(db, email1, email2);
     }
 }
 
