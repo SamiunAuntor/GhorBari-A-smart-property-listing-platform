@@ -309,9 +309,9 @@ const ApplicationManagementModal = ({ isOpen, onClose, property }) => {
                                                 key={application._id}
                                                 className="bg-gray-50 rounded-md p-5 border border-gray-200"
                                             >
-                                                <div className="flex items-start justify-between gap-4">
-                                                    <div className="flex-1">
-                                                        <div className="flex items-center gap-3 mb-3">
+                                                <div className="flex flex-col lg:flex-row items-start justify-between gap-4">
+                                                    <div className="flex-1 w-full">
+                                                        <div className="flex items-start gap-3 mb-3">
                                                             <div className="w-12 h-12 rounded-md bg-orange-100 flex items-center justify-center overflow-hidden">
                                                                 {application.seeker.photoURL ? (
                                                                     <img src={application.seeker.photoURL} alt={application.seeker.name} className="w-full h-full object-cover" />
@@ -319,23 +319,23 @@ const ApplicationManagementModal = ({ isOpen, onClose, property }) => {
                                                                     <User size={20} className="text-orange-500" />
                                                                 )}
                                                             </div>
-                                                            <div className="flex-1">
-                                                                <div className="flex items-center gap-2 mb-1">
+                                                            <div className="flex-1 min-w-0">
+                                                                <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-1">
                                                                     <h4
                                                                         onClick={() => navigate(`/owner-profile/${application.seeker.email}`)}
-                                                                        className="font-bold text-gray-900 cursor-pointer hover:text-orange-600 transition-colors"
+                                                                        className="font-bold text-gray-900 cursor-pointer hover:text-orange-600 transition-colors break-words"
                                                                         title="View Applicant Public Profile"
                                                                     >{application.seeker.name}</h4>
-                                                                    <div className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border ${getApplicationStatusColor(application.status)}`}>
+                                                                    <div className={`w-fit px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border ${getApplicationStatusColor(application.status)}`}>
                                                                         {getApplicationStatusDisplay(application.status, property)}
                                                                     </div>
                                                                 </div>
-                                                                <p className="text-xs text-gray-500">{application.seeker.email}</p>
+                                                                <p className="text-xs text-gray-500 break-all">{application.seeker.email}</p>
                                                             </div>
                                                         </div>
 
                                                         {(application.proposedPrice || application.message) && (
-                                                            <div className="mb-3 rounded-md border border-gray-200 bg-white px-4 py-3">
+                                                            <div className="mb-3 w-full rounded-md border border-gray-200 bg-white px-4 py-3">
                                                                 {application.proposedPrice && (
                                                                     <div className="mb-3">
                                                                         <div className="mb-1 text-[11px] font-bold uppercase tracking-[0.18em] text-orange-600">
@@ -364,13 +364,13 @@ const ApplicationManagementModal = ({ isOpen, onClose, property }) => {
                                                         )}
                                                     </div>
 
-                                                    <div className="flex flex-col gap-2">
+                                                    <div className="w-full lg:w-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-2">
                                                         {application.status === 'pending' && (
                                                             <>
                                                                 <button
                                                                     onClick={() => handleAccept(application)}
                                                                     disabled={processingId === application._id}
-                                                                    className="px-4 py-2 bg-green-600 text-white rounded-md font-bold text-xs uppercase tracking-wider hover:bg-green-700 transition-all disabled:opacity-50 flex items-center gap-2"
+                                                                    className="w-full px-4 py-2 bg-green-600 text-white rounded-md font-bold text-xs uppercase tracking-wider hover:bg-green-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                                                                 >
                                                                     {processingId === application._id ? (
                                                                         <Loader2 size={14} className="animate-spin" />
@@ -381,7 +381,7 @@ const ApplicationManagementModal = ({ isOpen, onClose, property }) => {
                                                                 </button>
                                                                 <button
                                                                     onClick={() => handleOpenHistory(application)}
-                                                                    className="px-4 py-2 bg-purple-600 text-white rounded-md font-bold text-xs uppercase tracking-wider hover:bg-purple-700 transition-all flex items-center gap-2"
+                                                                    className="w-full px-4 py-2 bg-purple-600 text-white rounded-md font-bold text-xs uppercase tracking-wider hover:bg-purple-700 transition-all flex items-center justify-center gap-2"
                                                                 >
                                                                     <History size={14} />
                                                                     History
@@ -389,7 +389,7 @@ const ApplicationManagementModal = ({ isOpen, onClose, property }) => {
                                                                 <button
                                                                     onClick={() => handleCounter(application)}
                                                                     disabled={processingId === application._id}
-                                                                    className="px-4 py-2 bg-blue-600 text-white rounded-md font-bold text-xs uppercase tracking-wider hover:bg-blue-700 transition-all disabled:opacity-50 flex items-center gap-2"
+                                                                    className="w-full px-4 py-2 bg-blue-600 text-white rounded-md font-bold text-xs uppercase tracking-wider hover:bg-blue-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                                                                 >
                                                                     <Send size={14} />
                                                                     Counter
@@ -397,7 +397,7 @@ const ApplicationManagementModal = ({ isOpen, onClose, property }) => {
                                                                 <button
                                                                     onClick={() => handleReject(application)}
                                                                     disabled={processingId === application._id}
-                                                                    className="px-4 py-2 bg-red-600 text-white rounded-md font-bold text-xs uppercase tracking-wider hover:bg-red-700 transition-all disabled:opacity-50 flex items-center gap-2"
+                                                                    className="w-full px-4 py-2 bg-red-600 text-white rounded-md font-bold text-xs uppercase tracking-wider hover:bg-red-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                                                                 >
                                                                     <XCircle size={14} />
                                                                     Reject
@@ -406,7 +406,7 @@ const ApplicationManagementModal = ({ isOpen, onClose, property }) => {
                                                         )}
                                                                                                                 {application.status === 'counter' && (
                                                             <>
-                                                                <div className="px-4 py-2 bg-blue-50 text-blue-700 rounded-md font-bold text-xs uppercase tracking-wider text-center border border-blue-200 mb-2">
+                                                                <div className="w-full px-4 py-2 bg-blue-50 text-blue-700 rounded-md font-bold text-xs uppercase tracking-wider text-center border border-blue-200">
                                                                     Waiting for Seeker Response
                                                                 </div>
                                                                 <button
@@ -428,19 +428,19 @@ const ApplicationManagementModal = ({ isOpen, onClose, property }) => {
                                                         )}
                                                         {(application.status === 'deal-in-progress' || application.status === 'accepted') && (
                                                             <>
-                                                                <div className="px-4 py-2 bg-orange-100 text-orange-700 rounded-md font-bold text-xs uppercase tracking-wider text-center mb-2">
+                                                                <div className="w-full px-4 py-2 bg-orange-100 text-orange-700 rounded-md font-bold text-xs uppercase tracking-wider text-center">
                                                                     Deal in Progress
                                                                 </div>
                                                                 <button
                                                                     onClick={() => handleOpenHistory(application)}
-                                                                    className="w-full px-4 py-2 bg-purple-600 text-white rounded-md font-bold text-xs uppercase tracking-wider hover:bg-purple-700 transition-all flex items-center justify-center gap-2 mb-2"
+                                                                    className="w-full px-4 py-2 bg-purple-600 text-white rounded-md font-bold text-xs uppercase tracking-wider hover:bg-purple-700 transition-all flex items-center justify-center gap-2"
                                                                 >
                                                                     <History size={14} />
                                                                     History
                                                                 </button>
                                                                 <button
                                                                     onClick={() => navigate(`/chat?applicationId=${application._id}`)}
-                                                                    className="w-full px-4 py-2 bg-blue-600 text-white rounded-md font-bold text-xs uppercase tracking-wider hover:bg-blue-700 transition-all flex items-center justify-center gap-2 mb-2"
+                                                                    className="w-full px-4 py-2 bg-blue-600 text-white rounded-md font-bold text-xs uppercase tracking-wider hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
                                                                 >
                                                                     <MessageSquare size={14} />
                                                                     Chat with Buyer
@@ -573,9 +573,9 @@ const ApplicationManagementModal = ({ isOpen, onClose, property }) => {
                                         {otherApplications.map((application) => (
                                             <div
                                                 key={application._id}
-                                                className="bg-gray-50 rounded-md p-4 border border-gray-200 flex items-center justify-between"
+                                                className="bg-gray-50 rounded-md p-4 border border-gray-200 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4"
                                             >
-                                                <div className="flex items-center gap-3">
+                                                <div className="flex items-center gap-3 min-w-0">
                                                     <div className="w-10 h-10 rounded-md bg-gray-200 flex items-center justify-center overflow-hidden">
                                                         {application.seeker.photoURL ? (
                                                             <img src={application.seeker.photoURL} alt={application.seeker.name} className="w-full h-full object-cover" />
@@ -583,31 +583,31 @@ const ApplicationManagementModal = ({ isOpen, onClose, property }) => {
                                                             <User size={16} className="text-gray-400" />
                                                         )}
                                                     </div>
-                                                    <div>
+                                                    <div className="min-w-0">
                                                         <p
                                                             onClick={() => navigate(`/owner-profile/${application.seeker.email}`)}
-                                                            className="font-bold text-sm text-gray-900 cursor-pointer hover:text-orange-600 transition-colors"
+                                                            className="font-bold text-sm text-gray-900 cursor-pointer hover:text-orange-600 transition-colors break-words"
                                                             title="View Applicant Public Profile"
                                                         >{application.seeker.name}</p>
                                                         <p className="text-xs text-gray-500">{new Date(application.createdAt).toLocaleDateString()}</p>
                                                     </div>
                                                 </div>
-                                                <div className="flex items-center gap-3">
+                                                <div className="w-full lg:w-auto flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 sm:gap-3">
                                                     <button
                                                         onClick={() => handleOpenHistory(application)}
-                                                        className="px-3 py-1.5 bg-purple-600 text-white rounded-md text-xs font-semibold hover:bg-purple-700 flex items-center gap-1"
+                                                        className="w-full sm:w-auto px-3 py-1.5 bg-purple-600 text-white rounded-md text-xs font-semibold hover:bg-purple-700 flex items-center justify-center gap-1"
                                                     >
                                                         <History size={12} />
                                                         History
                                                     </button>
-                                                    <div className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border ${getApplicationStatusColor(application.status)}`}>
+                                                    <div className={`w-fit px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border ${getApplicationStatusColor(application.status)}`}>
                                                         {getApplicationStatusDisplay(application.status, property)}
                                                     </div>
                                                     {(application.status === 'deal-in-progress' || application.status === 'accepted') && (
-                                                        <div className="flex items-center gap-2">
+                                                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                                                             <button
                                                                 onClick={() => navigate(`/chat?applicationId=${application._id}`)}
-                                                                className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-semibold hover:bg-blue-700 flex items-center gap-1"
+                                                                className="w-full sm:w-auto px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-semibold hover:bg-blue-700 flex items-center justify-center gap-1"
                                                             >
                                                                 <MessageSquare size={12} />
                                                                 Chat
@@ -656,7 +656,7 @@ const ApplicationManagementModal = ({ isOpen, onClose, property }) => {
                                                                     }
                                                                 }}
                                                                 disabled={processingId === application._id}
-                                                                className="px-3 py-1.5 bg-emerald-600 text-white rounded-md font-bold text-xs uppercase tracking-wider hover:bg-emerald-700 transition-all disabled:opacity-50 flex items-center gap-1.5"
+                                                                className="w-full sm:w-auto px-3 py-1.5 bg-emerald-600 text-white rounded-md font-bold text-xs uppercase tracking-wider hover:bg-emerald-700 transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
                                                             >
                                                                 {processingId === application._id ? (
                                                                     <Loader2 size={12} className="animate-spin" />
@@ -668,7 +668,7 @@ const ApplicationManagementModal = ({ isOpen, onClose, property }) => {
                                                             <button
                                                                 onClick={() => handleCancelDeal(application)}
                                                                 disabled={processingId === application._id}
-                                                                className="px-3 py-1.5 bg-red-600 text-white rounded-md font-bold text-xs uppercase tracking-wider hover:bg-red-700 transition-all disabled:opacity-50 flex items-center gap-1.5"
+                                                                className="w-full sm:w-auto px-3 py-1.5 bg-red-600 text-white rounded-md font-bold text-xs uppercase tracking-wider hover:bg-red-700 transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
                                                             >
                                                                 {processingId === application._id ? (
                                                                     <Loader2 size={12} className="animate-spin" />
@@ -685,7 +685,7 @@ const ApplicationManagementModal = ({ isOpen, onClose, property }) => {
                                                                 setSelectedApplicationForRating(application);
                                                                 setRateModalOpen(true);
                                                             }}
-                                                            className="px-3 py-1.5 bg-amber-500 text-white rounded-md text-xs font-semibold hover:bg-amber-600 flex items-center gap-1"
+                                                            className="w-full sm:w-auto px-3 py-1.5 bg-amber-500 text-white rounded-md text-xs font-semibold hover:bg-amber-600 flex items-center justify-center gap-1"
                                                         >
                                                             <Star size={12} />
                                                             Rate
