@@ -1,4 +1,5 @@
 const APP_BASE_URL = process.env.CLIENT_APP_URL || process.env.CLIENT_URL || "http://localhost:5173";
+const EMAIL_PROVIDER = process.env.EMAIL_PROVIDER?.trim().toLowerCase() || "smtp";
 
 function formatCurrency(value) {
     if (typeof value !== "number" || Number.isNaN(value)) {
@@ -45,10 +46,36 @@ function renderEmailShell({ eyebrow, title, intro, details = [], ctaLabel, ctaUr
     `;
 }
 
+function renderEmailJsBody({ eyebrow, title, intro, details = [], ctaLabel, ctaUrl }) {
+    const detailLines = details
+        .filter((detail) => detail.value)
+        .map((detail) => `${detail.label}: ${detail.value}`)
+        .join("\n");
+
+    const sections = [
+        eyebrow,
+        title,
+        intro,
+        detailLines,
+        `${ctaLabel}: ${ctaUrl}`,
+        "GhorBari"
+    ].filter(Boolean);
+
+    return sections.join("\n\n");
+}
+
+function renderEmailBody(templateData) {
+    if (EMAIL_PROVIDER === "emailjs") {
+        return renderEmailJsBody(templateData);
+    }
+
+    return renderEmailShell(templateData);
+}
+
 const templateFactories = {
     application_submitted: (payload) => ({
         subject: `New application received for ${payload.propertyTitle}`,
-        html: renderEmailShell({
+        html: renderEmailBody({
             eyebrow: "New Application",
             title: "Your property received a new offer",
             intro: `${payload.actorName} submitted an application for "${payload.propertyTitle}". Review the offer details from your dashboard.`,
@@ -64,7 +91,7 @@ const templateFactories = {
     }),
     counter_offer: (payload) => ({
         subject: `Counter offer received for ${payload.propertyTitle}`,
-        html: renderEmailShell({
+        html: renderEmailBody({
             eyebrow: "Counter Offer",
             title: "You received a counter offer",
             intro: `${payload.actorName} sent a counter offer for "${payload.propertyTitle}". Open your requested properties to respond.`,
@@ -79,7 +106,7 @@ const templateFactories = {
     }),
     application_rejected: (payload) => ({
         subject: `Application update for ${payload.propertyTitle}`,
-        html: renderEmailShell({
+        html: renderEmailBody({
             eyebrow: "Application Rejected",
             title: "Your application was rejected",
             intro: `${payload.actorName} rejected your application for "${payload.propertyTitle}".`,
@@ -93,7 +120,7 @@ const templateFactories = {
     }),
     deal_in_progress: (payload) => ({
         subject: `Offer accepted for ${payload.propertyTitle}`,
-        html: renderEmailShell({
+        html: renderEmailBody({
             eyebrow: "Deal In Progress",
             title: "Your deal is now in progress",
             intro: `${payload.actorName} accepted the offer for "${payload.propertyTitle}". You can now continue from chat and your requested properties.`,
@@ -107,7 +134,7 @@ const templateFactories = {
     }),
     offer_revised: (payload) => ({
         subject: `Offer revised for ${payload.propertyTitle}`,
-        html: renderEmailShell({
+        html: renderEmailBody({
             eyebrow: "Offer Revised",
             title: "The applicant revised their offer",
             intro: `${payload.actorName} revised the offer for "${payload.propertyTitle}".`,
@@ -122,7 +149,7 @@ const templateFactories = {
     }),
     counter_accepted: (payload) => ({
         subject: `Counter offer accepted for ${payload.propertyTitle}`,
-        html: renderEmailShell({
+        html: renderEmailBody({
             eyebrow: "Counter Accepted",
             title: "Your counter offer was accepted",
             intro: `${payload.actorName} accepted your counter offer for "${payload.propertyTitle}".`,
@@ -136,7 +163,7 @@ const templateFactories = {
     }),
     application_withdrawn: (payload) => ({
         subject: `Application withdrawn for ${payload.propertyTitle}`,
-        html: renderEmailShell({
+        html: renderEmailBody({
             eyebrow: "Application Withdrawn",
             title: "An applicant withdrew their offer",
             intro: `${payload.actorName} withdrew their application for "${payload.propertyTitle}".`,
@@ -150,7 +177,7 @@ const templateFactories = {
     }),
     deal_completed: (payload) => ({
         subject: `Deal completed for ${payload.propertyTitle}`,
-        html: renderEmailShell({
+        html: renderEmailBody({
             eyebrow: "Deal Completed",
             title: "The deal has been completed",
             intro: `The deal for "${payload.propertyTitle}" has been marked completed.`,
@@ -165,7 +192,7 @@ const templateFactories = {
     }),
     deal_cancelled: (payload) => ({
         subject: `Deal cancelled for ${payload.propertyTitle}`,
-        html: renderEmailShell({
+        html: renderEmailBody({
             eyebrow: "Deal Cancelled",
             title: "The deal has been cancelled",
             intro: `The deal for "${payload.propertyTitle}" has been cancelled and the listing is available again if applicable.`,
