@@ -149,18 +149,24 @@ function formatLocalPropertyMatches(properties) {
     const lines = [];
 
     properties.slice(0, 5).forEach((property, index) => {
-        const base = `${index + 1}. ${property.title || "Untitled property"} (ID: ${property.id})`;
-        const details = [
-            `Type: ${property.listingType || "n/a"} ${property.propertyType || "property"}`,
-            property.price ? `BDT ${property.price}` : "Price n/a",
-            property.areaSqFt ? `${property.areaSqFt} sqft` : null,
-            `Location: ${formatLocation(property)}`
-        ].filter(Boolean).join(" | ");
-
-        lines.push(`${base} | ${details}`);
+        const title = property.title || "Untitled property";
+        const type = `${property.listingType || "n/a"} ${property.propertyType || "property"}`;
+        const price = property.price ? `BDT ${property.price}` : "Price n/a";
+        const area = property.areaSqFt ? `${property.areaSqFt} sqft` : null;
+        const location = formatLocation(property);
+        
+        lines.push(`• ${title}`);
+        lines.push(`  📍 ${location}`);
+        lines.push(`  💰 ${price}`);
+        lines.push(`  🏢 ${type}`);
+        if (area) {
+            lines.push(`  📏 ${area}`);
+        }
+        lines.push(`  ID: ${property.id}`);
+        lines.push("");
     });
 
-    return lines.join("\n");
+    return lines.join("\n").trim();
 }
 
 async function getBestPropertyMatches(database, message, limit = 6) {
@@ -283,14 +289,40 @@ export const sendMessageToAI = async (req, res) => {
             console.error("Web search context fetch failed:", webError.message);
         }
 
-        const systemPrompt = `You are Ghor AI, a helpful real estate assistant for a property rental and sales platform called "GHOR BARI" (which means "home" in Bengali). You help users find properties, answer questions about real estate, provide advice on renting or buying properties in Bangladesh, and assist with any property-related queries.
+        const systemPrompt = `You are Ghor AI, a real estate assistant for GhorAi platform.
 
-    Be friendly, professional, and helpful. Keep responses concise and informative.
-    Always respond in plain text. Do not use markdown formatting, headings, bullets, asterisks, or hash symbols.
+Your job is to help users find rental properties and recommend suitable areas in Dhaka based on their budget, income, and preferences.
 
-    Keep response natural, concise, and practical.
-    Mention web source URLs only when they are useful.
-    Do not use markdown symbols.`;
+IMPORTANT RULES:
+
+1. INTENT DETECTION
+   If the user asks about:
+   - "which area should I rent"
+   - "best area to live"
+   - "where should I stay"
+   Then prioritize area recommendations.
+   Only show database properties if they match the user's question and location.
+   If properties are not relevant to the user's location or budget, do not show them.
+
+2. BUDGET LOGIC
+   Estimate affordable rent as: Income × 25% to 35%
+   Example: Income 50,000 BDT → recommended rent 12,000–18,000 BDT.
+
+3. DHAKA RENTAL KNOWLEDGE
+   For mid-income renters (10k–20k rent), common areas include:
+   Mirpur, Mohammadpur, Rampura, Badda, Jatrabari, Uttara sector 10–13
+   
+   Avoid recommending expensive areas like Gulshan or Banani unless the user's budget is high.
+
+4. DO NOT invent platform features.
+   Only describe properties from the database or give general housing advice.
+
+5. Keep answers concise, clear, and practical.
+   Do not add filler phrases like "Congratulations on your income".
+   Do not add irrelevant website links.
+   Do not use markdown formatting, headings, bullets, asterisks, or hash symbols in your text.
+
+Always keep the response clean and easy to read.`;
 
         const userPrompt = `User message: ${message}\n\nLocal database filters used:\n${JSON.stringify(propertyContext.filters)}\n\nOnline web snippets (JSON):\n${JSON.stringify(webContext)}`;
 
@@ -303,16 +335,15 @@ export const sendMessageToAI = async (req, res) => {
                 topP: 0.95
             });
 
-            const localSectionHeader = "In the GhorAi, the following match with property is:";
+            const localSectionHeader = "🏠 Properties available on GhorAi";
             const localSectionBody = propertyContext.total > 0
                 ? formatLocalPropertyMatches(propertyContext.properties)
-                : "No relevant property found in your website database for this exact request.";
+                : "No relevant property found in our database for this exact request.";
 
-            const sourceNote = strategy === "relaxed"
-                ? "(Closest matches from your website)"
-                : "(Property available on my website)";
+            const divider = "──────────";
+            const externalSectionHeader = "💡 Area or housing suggestions";
 
-            const combinedResponse = `${localSectionHeader}\n${sourceNote}\n${localSectionBody}\n\nFrom other source:\n${aiResponse}`;
+            const combinedResponse = `${localSectionHeader}\n\n${localSectionBody}\n\n${divider}\n\n${externalSectionHeader}\n\n${aiResponse}`;
 
             return res.status(200).json({
                 success: true,
@@ -321,12 +352,15 @@ export const sendMessageToAI = async (req, res) => {
                 source: propertyContext.total > 0 ? "hybrid-db-and-web" : "web-with-db-check"
             });
         } catch (error) {
-            const localSectionHeader = "In the GhorAi, the following match with property is:";
+            const localSectionHeader = "🏠 Properties available on GhorAi";
             const localSectionBody = propertyContext.total > 0
                 ? formatLocalPropertyMatches(propertyContext.properties)
-                : "No relevant property found in your website database for this exact request.";
+                : "No relevant property found in our database for this exact request.";
 
-            const combinedFallback = `${localSectionHeader}\n(Property available on my website)\n${localSectionBody}\n\nFrom other source:\nOnline response is temporarily unavailable. Please try again in a moment.`;
+            const divider = "──────────";
+            const externalSectionHeader = "💡 Area or housing suggestions";
+
+            const combinedFallback = `${localSectionHeader}\n\n${localSectionBody}\n\n${divider}\n\n${externalSectionHeader}\n\nOnline response is temporarily unavailable. Please try again in a moment.`;
 
             const statusCode = error.response?.status || error.statusCode;
             if (propertyContext.total > 0 && (statusCode === 429 || statusCode === 503 || statusCode === 500)) {
