@@ -22,7 +22,11 @@ export async function enqueueEmailJob({ type, to, payload, dedupeKey, maxAttempt
             createdAt: now,
             updatedAt: now,
             sentAt: null,
-            lastError: null
+            lastError: null,
+            notification: {
+                read: false,
+                readAt: null
+            }
         });
 
         return { queued: true };

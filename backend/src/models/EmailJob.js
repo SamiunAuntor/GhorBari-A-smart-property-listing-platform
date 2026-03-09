@@ -2,6 +2,18 @@ export class EmailJobModel {
     static async ensureIndexes(db) {
         await db.collection("email_jobs").createIndex({ status: 1, nextRunAt: 1 });
         await db.collection("email_jobs").createIndex({ dedupeKey: 1 }, { unique: true });
+        await db.collection("email_jobs").createIndex({ to: 1, status: 1, "notification.read": 1, sentAt: -1, createdAt: -1 });
+        await db.collection("email_jobs").updateMany(
+            { notification: { $exists: false } },
+            {
+                $set: {
+                    notification: {
+                        read: false,
+                        readAt: null
+                    }
+                }
+            }
+        );
     }
 
     static async create(db, job) {

@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
-import { Menu, X, User } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Bell, CheckCheck, Menu, X, User } from "lucide-react";
 import { Link, NavLink } from "react-router";
 import useAuth from "../Hooks/useAuth";
 import { showToast } from "../Utilities/ToastMessage";
@@ -7,12 +8,66 @@ import { Tooltip } from "react-tooltip";
 import 'react-tooltip/dist/react-tooltip.css';
 import useAdmin from "../Hooks/useAdmin";
 import { useNavigate } from "react-router";
+import useAxiosSecure from "../Hooks/useAxiosSecure";
+
+const getRelativeTimeLabel = (dateValue) => {
+    if (!dateValue) return "Just now";
+
+    const target = new Date(dateValue).getTime();
+    if (Number.isNaN(target)) return "Just now";
+
+    const diffMs = target - Date.now();
+    const diffMinutes = Math.round(diffMs / 60000);
+    const formatter = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
+
+    if (Math.abs(diffMinutes) < 60) {
+        return formatter.format(diffMinutes, "minute");
+    }
+
+    const diffHours = Math.round(diffMinutes / 60);
+    if (Math.abs(diffHours) < 24) {
+        return formatter.format(diffHours, "hour");
+    }
+
+    const diffDays = Math.round(diffHours / 24);
+    return formatter.format(diffDays, "day");
+};
 
 const Navbar = () => {
     const [menuOpen, setMenuOpen] = useState(false);
+    const [notificationOpen, setNotificationOpen] = useState(false);
     const { user, logoutUser } = useAuth();
     const navigate = useNavigate();
     const [isAdmin, isAdminLoading] = useAdmin();
+    const axiosSecure = useAxiosSecure();
+    const queryClient = useQueryClient();
+    const { data: notificationData } = useQuery({
+        queryKey: ["notifications", user?.email],
+        enabled: !!user,
+        queryFn: async () => {
+            const res = await axiosSecure.get("/notifications");
+            return res.data;
+        },
+        refetchInterval: 60000
+    });
+
+    const notifications = notificationData?.notifications || [];
+    const unreadCount = notificationData?.unreadCount || 0;
+    const unreadBadgeCount = unreadCount > 99 ? "99+" : unreadCount;
+
+    const markNotificationRead = useMutation({
+        mutationFn: async (notificationId) => axiosSecure.patch(`/notifications/${notificationId}/read`),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["notifications", user?.email] });
+        }
+    });
+
+    const markAllNotificationsRead = useMutation({
+        mutationFn: async () => axiosSecure.patch("/notifications/read-all"),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["notifications", user?.email] });
+        }
+    });
 
 
     const handleLogout = async () => {
@@ -35,6 +90,70 @@ const Navbar = () => {
         }
     };
 
+    const handleNotificationClick = async (notification) => {
+        try {
+            if (!notification.read) {
+                await markNotificationRead.mutateAsync(notification.id);
+            }
+        } catch (error) {
+            showToast(error.response?.data?.message || "Failed to update notification", "error");
+        } finally {
+            setNotificationOpen(false);
+            navigate(notification.targetUrl || "/");
+            setMenuOpen(false);
+        }
+    };
+
+    const handleMarkAllNotificationsRead = async () => {
+        try {
+            await markAllNotificationsRead.mutateAsync();
+        } catch (error) {
+            showToast(error.response?.data?.message || "Failed to mark notifications as read", "error");
+        }
+    };
+
+    const notificationItems = useMemo(() => (
+        notifications.map((notification) => (
+            <button
+                key={notification.id}
+                onClick={() => handleNotificationClick(notification)}
+                className={`w-full text-left rounded-xl border px-4 py-3 transition-all ${notification.read
+                    ? "bg-white border-gray-200 hover:border-orange-200 hover:bg-orange-50/40"
+                    : "bg-orange-50 border-orange-200 hover:bg-orange-100/70"
+                    }`}
+            >
+                <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                        <p className="text-sm font-bold text-gray-900 break-words">{notification.title}</p>
+                        <p className="mt-1 text-xs text-gray-600 leading-5 break-words">{notification.message}</p>
+                    </div>
+                    {!notification.read && <span className="mt-1 h-2.5 w-2.5 rounded-full bg-orange-500 flex-shrink-0" />}
+                </div>
+                <p className="mt-2 text-[11px] font-medium text-gray-400">
+                    {getRelativeTimeLabel(notification.sentAt || notification.createdAt)}
+                </p>
+            </button>
+        ))
+    ), [notifications]);
+
+    useEffect(() => {
+        if (!notificationOpen) {
+            return undefined;
+        }
+
+        const handleDocumentClick = (event) => {
+            const target = event.target;
+            if (target?.closest?.("[data-notification-root='true']")) {
+                return;
+            }
+
+            setNotificationOpen(false);
+        };
+
+        document.addEventListener("mousedown", handleDocumentClick);
+        return () => document.removeEventListener("mousedown", handleDocumentClick);
+    }, [notificationOpen]);
+
     useEffect(() => {
         document.body.style.overflow = menuOpen ? "hidden" : "";
 
@@ -42,11 +161,52 @@ const Navbar = () => {
             document.body.style.overflow = "";
         };
     }, [menuOpen]);
+    const renderNotificationButton = (className = "") => (
+        <button
+            onClick={() => setNotificationOpen((prev) => !prev)}
+            aria-label="Open notifications"
+            className={`relative w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center bg-white hover:ring-2 hover:ring-orange-400 transition ${className}`}
+        >
+            <Bell size={18} className="text-gray-600" />
+            {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1.5 flex items-center justify-center bg-orange-500 text-white text-[10px] font-black rounded-full border-2 border-white">
+                    {unreadBadgeCount}
+                </span>
+            )}
+        </button>
+    );
 
-
+    const renderNotificationPanel = (className = "") => (
+        <div
+            className={`absolute right-0 top-[calc(100%+12px)] w-[min(92vw,24rem)] rounded-2xl border border-gray-200 bg-white shadow-2xl overflow-hidden z-[10001] ${className}`}
+        >
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                <div>
+                    <p className="text-sm font-black text-gray-900 uppercase tracking-[0.16em]">Notifications</p>
+                    <p className="text-[11px] text-gray-500 mt-1">{unreadCount} unread</p>
+                </div>
+                <button
+                    onClick={handleMarkAllNotificationsRead}
+                    disabled={unreadCount === 0 || markAllNotificationsRead.isPending}
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-orange-600 disabled:text-gray-300 transition"
+                >
+                    <CheckCheck size={14} />
+                    Mark all read
+                </button>
+            </div>
+            <div className="max-h-[24rem] overflow-y-auto p-3 space-y-3 bg-gray-50">
+                {notifications.length > 0 ? notificationItems : (
+                    <div className="rounded-xl border-2 border-dashed border-gray-200 bg-white px-4 py-10 text-center">
+                        <p className="text-sm font-bold text-gray-500">No notifications yet</p>
+                        <p className="mt-1 text-xs text-gray-400">New updates will appear here after email-triggering events.</p>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
 
     return (
-        <header className="w-full bg-white/70 backdrop-blur-md sticky top-0 z-[9999] border-b border-white/20">
+        <header className="relative w-full bg-white/70 backdrop-blur-md sticky top-0 z-[9999] border-b border-white/20">
             <nav className="w-11/12 mx-auto h-16 flex items-center">
                 {/* LOGO */}
                 <Link
@@ -172,6 +332,11 @@ const Navbar = () => {
                         </>
                     ) : (
                         <div className="flex items-center gap-4">
+                            <div className="relative" data-notification-root="true">
+                                {renderNotificationButton()}
+                                {notificationOpen && renderNotificationPanel()}
+                            </div>
+
                             <button
                                 onClick={handleLogout}
                                 className="px-4 py-2 text-sm md:text-base font-medium border border-orange-400 text-orange-500 rounded-md hover:bg-orange-400/10 transition"
@@ -210,21 +375,26 @@ const Navbar = () => {
                 {/* MOBILE MENU BUTTON */}
                 <div className="lg:hidden ml-auto flex items-center gap-2">
                     {user && (
-                        <button
-                            onClick={handleAvatarClick}
-                            aria-label={isAdmin ? "Go to admin dashboard" : "Go to profile"}
-                            className="w-10 h-10 rounded-full overflow-hidden border border-gray-200 flex items-center justify-center bg-gray-100 hover:ring-2 hover:ring-orange-400 transition"
-                        >
-                            {user.photoURL ? (
-                                <img
-                                    src={user.photoURL}
-                                    alt={user.displayName || "User Avatar"}
-                                    className="w-full h-full object-cover"
-                                />
-                            ) : (
-                                <User size={20} className="text-gray-400" />
-                            )}
-                        </button>
+                        <>
+                            <div className="relative" data-notification-root="true">
+                                {renderNotificationButton()}
+                            </div>
+                            <button
+                                onClick={handleAvatarClick}
+                                aria-label={isAdmin ? "Go to admin dashboard" : "Go to profile"}
+                                className="w-10 h-10 rounded-full overflow-hidden border border-gray-200 flex items-center justify-center bg-gray-100 hover:ring-2 hover:ring-orange-400 transition"
+                            >
+                                {user.photoURL ? (
+                                    <img
+                                        src={user.photoURL}
+                                        alt={user.displayName || "User Avatar"}
+                                        className="w-full h-full object-cover"
+                                    />
+                                ) : (
+                                    <User size={20} className="text-gray-400" />
+                                )}
+                            </button>
+                        </>
                     )}
                     <button
                         onClick={() => setMenuOpen(!menuOpen)}
@@ -235,6 +405,12 @@ const Navbar = () => {
                     </button>
                 </div>
             </nav>
+
+            {user && notificationOpen && (
+                <div className="lg:hidden absolute right-4 top-[calc(100%+8px)]" data-notification-root="true">
+                    {renderNotificationPanel("w-[min(calc(100vw-2rem),24rem)]")}
+                </div>
+            )}
 
             {/* MOBILE MENU */}
             {

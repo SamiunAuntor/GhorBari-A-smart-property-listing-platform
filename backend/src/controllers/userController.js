@@ -1,4 +1,82 @@
+import { ObjectId } from "mongodb";
 import { getDatabase } from "../config/db.js";
+
+const notificationTypeContent = {
+    application_submitted: (payload) => ({
+        title: "New application received",
+        message: `${payload.actorName} applied for "${payload.propertyTitle}" with an offer of Tk ${Number(payload.proposedPrice || 0).toLocaleString("en-BD")}.`,
+        targetUrl: "/list-property"
+    }),
+    counter_offer: (payload) => ({
+        title: "Counter offer received",
+        message: `${payload.actorName} sent a counter offer for "${payload.propertyTitle}".`,
+        targetUrl: "/list-property"
+    }),
+    application_rejected: (payload) => ({
+        title: "Application rejected",
+        message: `${payload.actorName} rejected your application for "${payload.propertyTitle}".`,
+        targetUrl: "/list-property"
+    }),
+    deal_in_progress: (payload) => ({
+        title: "Deal in progress",
+        message: `${payload.actorName} accepted the offer for "${payload.propertyTitle}".`,
+        targetUrl: payload.applicationId ? `/chat?applicationId=${payload.applicationId}` : "/chat"
+    }),
+    offer_revised: (payload) => ({
+        title: "Offer revised",
+        message: `${payload.actorName} revised the offer for "${payload.propertyTitle}".`,
+        targetUrl: "/list-property"
+    }),
+    counter_accepted: (payload) => ({
+        title: "Counter offer accepted",
+        message: `${payload.actorName} accepted your counter offer for "${payload.propertyTitle}".`,
+        targetUrl: payload.applicationId ? `/chat?applicationId=${payload.applicationId}` : "/chat"
+    }),
+    application_withdrawn: (payload) => ({
+        title: "Application withdrawn",
+        message: `${payload.actorName} withdrew the application for "${payload.propertyTitle}".`,
+        targetUrl: "/list-property"
+    }),
+    deal_completed: (payload) => ({
+        title: "Deal completed",
+        message: `The deal for "${payload.propertyTitle}" has been completed.`,
+        targetUrl: "/list-property"
+    }),
+    deal_cancelled: (payload) => ({
+        title: "Deal cancelled",
+        message: `The deal for "${payload.propertyTitle}" has been cancelled.`,
+        targetUrl: "/list-property"
+    })
+};
+
+function formatNotification(job) {
+    const payload = job?.payload || {};
+    const contentFactory = notificationTypeContent[job?.type];
+    const content = contentFactory
+        ? contentFactory(payload)
+        : {
+            title: "Notification",
+            message: payload.propertyTitle ? `Update for "${payload.propertyTitle}".` : "You have a new notification.",
+            targetUrl: "/"
+        };
+
+    return {
+        id: job._id?.toString?.() || String(job._id),
+        type: job.type,
+        title: content.title,
+        message: content.message,
+        targetUrl: content.targetUrl,
+        applicationId: payload.applicationId || null,
+        propertyTitle: payload.propertyTitle || "",
+        actorName: payload.actorName || "",
+        proposedPrice: payload.proposedPrice ?? null,
+        createdAt: job.createdAt,
+        sentAt: job.sentAt,
+        status: job.status,
+        read: Boolean(job.notification?.read),
+        readAt: job.notification?.readAt || null
+    };
+}
 
 export const registerUser = async (req, res) => {
 
@@ -349,5 +427,113 @@ export const getPublicProfile = async (req, res) => {
 
     }
     
+};
+
+export const getNotifications = async (req, res) => {
+
+    try {
+
+        const db = getDatabase();
+        const email = req.user?.email;
+
+        const jobs = await db.collection("email_jobs")
+            .find({
+                to: email,
+                status: "sent"
+            })
+            .sort({ sentAt: -1, createdAt: -1 })
+            .limit(25)
+            .toArray();
+
+        const notifications = jobs.map(formatNotification);
+        const unreadCount = notifications.filter((notification) => !notification.read).length;
+
+        res.send({
+            notifications,
+            unreadCount
+        });
+
+    } catch (error) {
+
+        res.status(500).send({ message: "Server error" });
+
+    }
+
+};
+
+export const markNotificationRead = async (req, res) => {
+
+    try {
+
+        const db = getDatabase();
+        const email = req.user?.email;
+        const id = req.params.id;
+
+        if (!ObjectId.isValid(id)) {
+            return res.status(400).send({ message: "Invalid notification ID format" });
+        }
+
+        const result = await db.collection("email_jobs").updateOne(
+            {
+                _id: new ObjectId(id),
+                to: email
+            },
+            {
+                $set: {
+                    "notification.read": true,
+                    "notification.readAt": new Date(),
+                    updatedAt: new Date()
+                }
+            }
+        );
+
+        if (result.matchedCount === 0) {
+            return res.status(404).send({ message: "Notification not found" });
+        }
+
+        res.send({ success: true });
+
+    } catch (error) {
+
+        res.status(500).send({ message: "Server error" });
+
+    }
+
+};
+
+export const markAllNotificationsRead = async (req, res) => {
+
+    try {
+
+        const db = getDatabase();
+        const email = req.user?.email;
+        const now = new Date();
+
+        const result = await db.collection("email_jobs").updateMany(
+            {
+                to: email,
+                status: "sent",
+                $or: [
+                    { "notification.read": false },
+                    { notification: { $exists: false } }
+                ]
+            },
+            {
+                $set: {
+                    "notification.read": true,
+                    "notification.readAt": now,
+                    updatedAt: now
+                }
+            }
+        );
+
+        res.send({ success: true, modifiedCount: result.modifiedCount });
+
+    } catch (error) {
+
+        res.status(500).send({ message: "Server error" });
+
+    }
+
 };
 

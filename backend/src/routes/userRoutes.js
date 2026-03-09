@@ -57,6 +57,9 @@ router.post("/submit-nid", verifyToken, userController.submitNid);
  * Get current user's full profile
  */
 router.get("/user-profile", verifyToken, userController.getUserProfile);
+router.get("/notifications", verifyToken, userController.getNotifications);
+router.patch("/notifications/read-all", verifyToken, userController.markAllNotificationsRead);
+router.patch("/notifications/:id/read", verifyToken, userController.markNotificationRead);
 
 
 /**
