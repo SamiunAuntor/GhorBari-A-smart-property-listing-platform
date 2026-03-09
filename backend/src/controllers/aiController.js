@@ -4,6 +4,21 @@ import { generatePropertyPriceEstimate } from "../services/propertyAppraisalServ
 
 const GROQ_MODEL = getGroqModel();
 
+function normalizeAiChatResponse(text) {
+    if (!text || typeof text !== "string") {
+        return "";
+    }
+
+    return text
+        .replace(/^#{1,6}\s+/gm, "")
+        .replace(/\*\*(.*?)\*\*/g, "$1")
+        .replace(/\*(.*?)\*/g, "$1")
+        .replace(/`([^`]+)`/g, "$1")
+        .replace(/^\s*[-*]\s+/gm, "")
+        .replace(/\n{3,}/g, "\n\n")
+        .trim();
+}
+
 function handleAiControllerError(res, error, fallbackMessage) {
     const statusCode = error.response?.status || error.statusCode || 500;
     const errorMessage =
@@ -56,7 +71,8 @@ export const sendMessageToAI = async (req, res) => {
 
         const systemPrompt = `You are Ghor AI, a helpful real estate assistant for a property rental and sales platform called "GHOR BARI" (which means "home" in Bengali). You help users find properties, answer questions about real estate, provide advice on renting or buying properties in Bangladesh, and assist with any property-related queries.
 
-Be friendly, professional, and helpful. Keep responses concise and informative.`;
+    Be friendly, professional, and helpful. Keep responses concise and informative.
+    Always respond in plain text. Do not use markdown formatting, headings, bullets, asterisks, or hash symbols.`;
 
         try {
             const aiResponse = await generateGroqText({
@@ -69,7 +85,7 @@ Be friendly, professional, and helpful. Keep responses concise and informative.`
 
             return res.status(200).json({
                 success: true,
-                response: aiResponse,
+                response: normalizeAiChatResponse(aiResponse),
                 model: GROQ_MODEL
             });
         } catch (error) {
