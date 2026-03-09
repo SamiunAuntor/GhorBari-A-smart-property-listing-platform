@@ -126,6 +126,91 @@ async function getPropertyContextForAi(database, message, limit = 6) {
     };
 }
 
+function formatLocation(property) {
+    const parts = [property.upazila, property.district, property.division].filter(Boolean);
+    return parts.length ? parts.join(", ") : "Location not specified";
+}
+
+function formatLocalPropertyMatches(properties) {
+    const lines = ["Top matches from GHOR BARI database:"];
+
+    properties.slice(0, 5).forEach((property, index) => {
+        const base = `${index + 1}. ${property.title || "Untitled property"} | ID: ${property.id}`;
+        const details = [
+            `${property.listingType || "n/a"}`,
+            `${property.propertyType || "n/a"}`,
+            property.price ? `BDT ${property.price}` : "Price n/a",
+            property.areaSqFt ? `${property.areaSqFt} sqft` : null,
+            formatLocation(property)
+        ].filter(Boolean).join(" | ");
+
+        lines.push(`${base} | ${details}`);
+    });
+
+    return lines.join("\n");
+}
+
+async function getBestPropertyMatches(database, message, limit = 6) {
+    const strictContext = await getPropertyContextForAi(database, message, limit);
+    if (strictContext.total > 0) {
+        return { context: strictContext, strategy: "strict" };
+    }
+
+    const baseQuery = buildPropertyIntentQuery(message);
+    const relaxedQuery = { status: "active" };
+
+    if (baseQuery.listingType) {
+        relaxedQuery.listingType = baseQuery.listingType;
+    }
+    if (baseQuery.propertyType) {
+        relaxedQuery.propertyType = baseQuery.propertyType;
+    }
+
+    const relaxedProperties = await database
+        .collection("properties")
+        .find(relaxedQuery)
+        .sort({ createdAt: -1 })
+        .limit(limit)
+        .toArray();
+
+    if (relaxedProperties.length > 0) {
+        const properties = relaxedProperties.map((property) => ({
+            id: property._id?.toString(),
+            title: property.title,
+            listingType: property.listingType,
+            propertyType: property.propertyType,
+            price: property.price,
+            areaSqFt: property.areaSqFt,
+            roomCount: property.roomCount ?? null,
+            bathrooms: property.bathrooms ?? null,
+            floorCount: property.floorCount ?? null,
+            totalUnits: property.totalUnits ?? null,
+            division: property.address?.division_id || null,
+            district: property.address?.district_id || null,
+            upazila: property.address?.upazila_id || null,
+            street: property.address?.street || null,
+            amenities: Array.isArray(property.amenities) ? property.amenities.slice(0, 8) : [],
+            createdAt: property.createdAt || null
+        }));
+
+        return {
+            strategy: "relaxed",
+            context: {
+                filters: {
+                    listingType: relaxedQuery.listingType || null,
+                    propertyType: relaxedQuery.propertyType || null,
+                    maxPrice: null,
+                    locationKeyword: null
+                },
+                total: properties.length,
+                properties
+            }
+        };
+    }
+
+    return { context: strictContext, strategy: "none" };
+}
+
 function handleAiControllerError(res, error, fallbackMessage) {
     const statusCode = error.response?.status || error.statusCode || 500;
     const errorMessage =
@@ -176,7 +261,7 @@ export const sendMessageToAI = async (req, res) => {
             });
         }
 
-        const propertyContext = await getPropertyContextForAi(req.db, message);
+        const { context: propertyContext, strategy } = await getBestPropertyMatches(req.db, message);
 
         let webContext = [];
         try {
@@ -190,16 +275,42 @@ export const sendMessageToAI = async (req, res) => {
     Be friendly, professional, and helpful. Keep responses concise and informative.
     Always respond in plain text. Do not use markdown formatting, headings, bullets, asterisks, or hash symbols.
 
-    You have access to two data sources:
-    1) Local GHOR BARI database snapshot.
-    2) Online web snippets.
+    Use local database listings first whenever available.
+    If no local listing matches, provide online guidance from web snippets and mention source URLs in plain text.
+    Do not invent local listings.`;
 
-    Prioritize local database records when recommending actual listings. Do not invent local listings.
-    If no local listing matches, clearly say so and then provide helpful online guidance.
-    When using web data, mention source URLs in plain text.
-    Mention local property IDs when relevant so users can identify exact listings.`;
+        if (propertyContext.total > 0) {
+            const localHeader = strategy === "relaxed"
+                ? "I could not find exact matches, so here are the closest results from your database."
+                : "I found matching properties in your database.";
 
-        const userPrompt = `User message: ${message}\n\nLocal property data snapshot (JSON):\n${JSON.stringify(propertyContext)}\n\nOnline web snippets (JSON):\n${JSON.stringify(webContext)}`;
+            const localSummary = formatLocalPropertyMatches(propertyContext.properties);
+
+            let aiSupplement = "";
+            try {
+                const localUserPrompt = `User message: ${message}\n\nDatabase matches (JSON):\n${JSON.stringify(propertyContext)}\n\nWrite 2-3 short lines after these matches with practical next-step advice (budget, location, negotiation). Do not repeat the same listings.`;
+                aiSupplement = await generateGroqText({
+                    systemPrompt,
+                    userPrompt: localUserPrompt,
+                    temperature: 0.6,
+                    maxTokens: 180,
+                    topP: 0.95
+                });
+            } catch (adviceError) {
+                console.error("Local advice generation failed:", adviceError.message);
+            }
+
+            const combined = `${localHeader}\n${localSummary}${aiSupplement ? `\n\n${aiSupplement}` : ""}`;
+
+            return res.status(200).json({
+                success: true,
+                response: normalizeAiChatResponse(combined),
+                model: GROQ_MODEL,
+                source: "database-first"
+            });
+        }
+
+        const userPrompt = `User message: ${message}\n\nNo relevant local database listing found. Use the online web snippets below and provide a helpful answer.\n\nOnline web snippets (JSON):\n${JSON.stringify(webContext)}`;
 
         try {
             const aiResponse = await generateGroqText({
@@ -213,7 +324,8 @@ export const sendMessageToAI = async (req, res) => {
             return res.status(200).json({
                 success: true,
                 response: normalizeAiChatResponse(aiResponse),
-                model: GROQ_MODEL
+                model: GROQ_MODEL,
+                source: "web-fallback"
             });
         } catch (error) {
             return handleAiControllerError(res, error, "AI service is temporarily unavailable. Please try again later.");
